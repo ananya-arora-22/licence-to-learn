@@ -29,6 +29,7 @@
         <nav class="nav" id="primary-nav" aria-label="Primary">
           <a href="{{ get_url(path='/data/') | safe }}">Data so far</a>
           <a href="{{ get_url(path='/tracker/') | safe }}">RTI Tracker</a>
+          <a href="{{ get_url(path='/search/') | safe }}">Search</a>
           {{ ui::take_action(variant="nav") }}
         </nav>
       </div>
@@ -50,6 +51,7 @@
             <a href="https://fossunited.org">FOSS United</a>
             <a href="{{ get_url(path='/data/') | safe }}">Data so Far</a>
             <a href="{{ get_url(path='/tracker/') | safe }}">RTI Tracker</a>
+            <a href="{{ get_url(path='/search/') | safe }}">Search Responses</a>
             <a href="{{ get_url(path='/credits/') | safe }}">Credits</a>
           </nav>
           <nav class="footer-col" aria-label="Get involved">

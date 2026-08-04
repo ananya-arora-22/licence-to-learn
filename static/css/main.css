@@ -1141,6 +1141,116 @@ main {
 }
 
 /* ==========================================================================
+   RTI full-text search
+   ========================================================================== */
+.rti-search {
+  margin-block: 2rem 1.5rem;
+}
+.search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  & label {
+    color: var(--body);
+    font-size: var(--fs-sm);
+  }
+}
+.search-input {
+  inline-size: 100%;
+  padding: 0.6em 0.8em;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--heading);
+  font: inherit;
+
+  &::placeholder {
+    color: var(--body);
+  }
+}
+.search-status {
+  min-block-size: 1.4em;
+  margin-block: 0.6rem 0;
+  color: var(--body);
+  font-size: var(--fs-sm);
+}
+.search-results {
+  margin-block: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+.search-hit {
+  padding-block: 0.9rem;
+  border-block-start: 1px solid var(--border);
+
+  & mark {
+    padding: 0 0.15em;
+    border-radius: 3px;
+    background: var(--btn);
+    color: var(--bg);
+  }
+}
+.search-hit__link {
+  color: var(--accent);
+  font-weight: 600;
+}
+.search-hit__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block: 0.35rem 0;
+  color: var(--body);
+  font-size: var(--fs-xs);
+}
+.search-hit__excerpt {
+  margin-block: 0.45rem 0;
+  color: var(--body);
+  font-size: var(--fs-sm);
+  /* OCR text keeps original line breaks as spaces; clamp so one long annexure
+     page cannot push the next result off the screen. */
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+/* Browse-all list: the no-JS fallback, and the empty-query state. */
+.doc-list {
+  margin-block-start: 2.5rem;
+
+  & > ul {
+    margin-block: 1rem 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  & li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding-block: 0.55rem;
+    border-block-start: 1px solid var(--border);
+    font-size: var(--fs-sm);
+  }
+
+  & a {
+    color: var(--accent);
+  }
+}
+.doc-list[hidden] {
+  display: none;
+}
+.doc-list__city,
+.doc-list__part {
+  color: var(--body);
+  font-size: var(--fs-xs);
+}
+
+/* ==========================================================================
    Footer
    ========================================================================== */
 .site-footer {

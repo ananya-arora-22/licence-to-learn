@@ -200,6 +200,59 @@ def clean(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
+# ---------------------------------------------------------------------------
+# Q/A segmentation: removes the boilerplate RTI question text so the index
+# only contains text from the institute's *answers*.  The RTI application is
+# a template -- question phrasing is nearly identical across all institutes.
+#
+# Q1 ("Please provide an exhaustive list of educational software") is the
+# key one: it names 17 example packages (Google Workspace, Zoom, Matlab …)
+# that are *not* necessarily used by the institute.  Stripping Q1 means a
+# search for "autodesk" only matches documents where the institute actually
+# answered with that software.
+#
+# Two-tier strategy:
+#   Tier 1 – precise: the full Q1 block from the opening phrase to its
+#     standard close ("TCS iON etc.").  Non-greedy, so it stops at the
+#     first occurrence and cannot stray into answer text.
+#   Tier 2 – loose fallback: when OCR has garbled the close so badly that
+#     Tier-1 cannot find it, clip 600 chars after the opening phrase.
+#     Covers ~40% of the corpus that is scanned / OCR'd.
+#   Tier 3 – detached tail: "Such items may include Google … TCS iON etc."
+#     that the PDF layout engine sometimes splits from the main question.
+# ---------------------------------------------------------------------------
+Q1_OPEN = r"(?:\d+[-.\s]+)?\s*Please\s+provide\s+an\s+exhaustive\s+list\s+of"
+Q1_CLOSE = r"TCS\s*\.?\s*iON\s*etc\.?"
+
+# Tier 1: open … close (non-greedy to the first match).
+Q1_FULL_RE = re.compile(
+    rf"{Q1_OPEN}(?:(?!{Q1_CLOSE})[\s\S])*?{Q1_CLOSE}",
+    re.IGNORECASE,
+)
+# Tier 2: open + 600 chars (loose OCR fallback, when Tier-1 cannot find
+# the close phrase at all – e.g. it's been completely garbled by OCR).
+Q1_FALLBACK_RE = re.compile(
+    rf"{Q1_OPEN}[\s\S]{{0,600}}",
+    re.IGNORECASE,
+)
+# Tier 3: detached example-list tail.  Also non-greedy – stops at the
+# first "TCS iON etc." which only ever appears at the end of the Q1
+# boilerplate, never in the institute's own answer.
+Q1_TAIL_RE = re.compile(
+    rf"Such\s+items\s+may\s+include\s+Google"
+    rf"(?:(?!{Q1_CLOSE})[\s\S])*?{Q1_CLOSE}",
+    re.IGNORECASE,
+)
+
+
+def segment_answers(text):
+    """Remove the standardised question blocks so the index only holds answers."""
+    text = Q1_FULL_RE.sub(" ", text)
+    text = Q1_FALLBACK_RE.sub(" ", text)
+    text = Q1_TAIL_RE.sub(" ", text)
+    return re.sub(r"\s{2,}", " ", text).strip()
+
+
 def raw_pages(name, base, langs, quiet):
     """Per-page text straight out of the PDF, cached before redaction.
 
@@ -241,7 +294,7 @@ def extract(name, row, base, langs, quiet):
     total = len(data["pages"])
     records = []
     for page, text in enumerate(data["pages"], start=1):
-        text = clean(text)
+        text = segment_answers(clean(text))
         if not text:
             continue
         records.append({

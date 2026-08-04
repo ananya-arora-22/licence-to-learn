@@ -1,5 +1,7 @@
 # Zola configuration | Licence to Learn
-base_url = "https://licencetolearn.in"
+# Preview deploy on the fork. Revert to https://licencetolearn.in before
+# merging upstream, since get_url() emits absolute URLs from this.
+base_url = "https://ananya-arora-22.github.io/licence-to-learn"
 title = "Licence to Learn"
 description = "Mapping every proprietary-software dependency across India's public universities."
 default_language = "en"

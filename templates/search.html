@@ -23,15 +23,24 @@
     data-worker="{{ get_url(path='js/search.worker.js', cachebust=true) | safe }}"
   >
     <form class="search-form" role="search">
-      <label for="rti-q">Search inside the responses</label>
-      <input
-        class="search-input"
-        id="rti-q"
-        type="search"
-        placeholder="e.g. Autodesk, MATLAB, annual licence fee…"
-        autocomplete="off"
-        enterkeyhint="search"
-      />
+      <label class="search-form__label" for="rti-q">Search inside the responses</label>
+      <div class="search-bar">
+        <svg class="search-bar__icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input
+          class="search-input"
+          id="rti-q"
+          type="search"
+          placeholder="Try a software name, a fee, or an institute"
+          autocomplete="off"
+          enterkeyhint="search"
+        />
+        <button class="search-btn" type="submit">
+          <span aria-hidden="true" data-icon-search>
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" width="18"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
+          <span class="search-btn__label">Search</span>
+        </button>
+      </div>
     </form>
     <p class="search-status" role="status" aria-live="polite"></p>
     <ul class="search-results"></ul>

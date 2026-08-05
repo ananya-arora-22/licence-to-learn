@@ -78,7 +78,6 @@
       index: navRoot.dataset.index,
       worker: navRoot.dataset.worker,
     };
-    const searchUrl = navRoot.dataset.searchUrl;
     let mySeq = 0;
     let timer = null;
 
@@ -99,35 +98,57 @@
 
     function renderDrop({ hits, total }) {
       drop.replaceChildren();
-      const q = input.value.trim();
 
       if (!hits || !hits.length) {
-        drop.insertAdjacentHTML(
-          "beforeend",
-          '<div class="header-search__empty">No matches</div>'
-        );
+        const empty = document.createElement("div");
+        empty.className = "header-search__empty";
+        empty.textContent = "No matches";
+        drop.append(empty);
         drop.hidden = false;
         return;
       }
 
+      const header = document.createElement("div");
+      header.className = "header-search__header";
+      header.textContent = `${total} page${total === 1 ? "" : "s"}`;
+      drop.append(header);
+
       const list = document.createElement("ul");
       list.className = "header-search__results";
 
-      for (let i = 0; i < Math.min(hits.length, 5); i++) {
-        const h = hits[i];
+      for (const h of hits) {
         const li = document.createElement("li");
         li.className = "header-search__hit";
-        li.innerHTML =
-          `<a class="header-search__link" href="${h.url}#page=${h.page}" target="_blank" rel="noopener noreferrer"><span>${h.institute}</span> <span class="pill">${h.type}</span></a>` +
-          `<div class="header-search__snippet">${h.excerpt.slice(0, 120)}</div>`;
-        list.append(li);
-      }
 
-      if (total > 5) {
-        const more = document.createElement("li");
-        more.className = "header-search__more";
-        more.innerHTML = `<a href="${searchUrl}?q=${encodeURIComponent(q)}">See all ${total} results</a>`;
-        list.append(more);
+        const a = document.createElement("a");
+        a.className = "header-search__link";
+        a.href = `${h.url}#page=${h.page}`;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+
+        const name = document.createElement("span");
+        name.className = "header-search__name";
+        name.textContent = h.institute;
+        a.append(name);
+
+        const pill = document.createElement("span");
+        pill.className = "pill";
+        pill.textContent = h.type;
+        a.append(pill);
+
+        li.append(a);
+
+        const meta = document.createElement("div");
+        meta.className = "header-search__meta";
+        meta.textContent = `Page ${h.page} of ${h.pages}`;
+        li.append(meta);
+
+        const snippet = document.createElement("div");
+        snippet.className = "header-search__snippet";
+        snippet.append(markUp(h.excerpt, h.terms));
+        li.append(snippet);
+
+        list.append(li);
       }
 
       drop.append(list);

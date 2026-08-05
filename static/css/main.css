@@ -253,26 +253,26 @@ main {
   inset-inline: 0;
   z-index: 70;
   margin-block-start: 6px;
-  min-inline-size: 320px;
+  min-inline-size: 360px;
+  max-block-size: 70dvh;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
   box-shadow: 0 8px 24px oklch(0% 0 0 / 0.4);
-  overflow: hidden;
+  overflow: hidden auto;
 }
-.header-search__empty,
-.header-search__hit,
-.header-search__more {
-  padding: 0.65rem 0.85rem;
-}
-.header-search__results {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.header-search__header {
+  padding: 0.5rem 0.85rem;
+  border-block-end: 1px solid var(--border);
+  color: var(--body);
+  font-size: var(--fs-xs);
+  font-weight: 500;
 }
 .header-search__hit {
+  padding: 0.75rem 0.85rem;
   border-block-start: 1px solid var(--border);
   font-size: var(--fs-sm);
+  cursor: default;
 
   &:first-child {
     border-block-start: 0;
@@ -289,31 +289,39 @@ main {
   font-weight: 600;
   text-decoration: none;
 }
-.header-search__snippet {
-  margin-block-start: 0.2rem;
+.header-search__meta {
+  margin-block-start: 0.15rem;
   color: var(--body);
   font-size: var(--fs-xs);
+}
+.header-search__snippet {
+  margin-block-start: 0.35rem;
+  color: var(--body);
+  font-size: var(--fs-xs);
+  line-height: 1.55;
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-}
-.header-search__more {
-  border-block-start: 1px solid var(--border);
-  text-align: center;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 
-  & a {
-    color: var(--accent);
-    font-size: var(--fs-sm);
-    font-weight: 500;
-    text-decoration: none;
+  & mark {
+    padding: 0 0.15em;
+    border-radius: 2px;
+    background: var(--btn);
+    color: var(--bg);
   }
 }
 .header-search__empty {
+  padding: 0.75rem 0.85rem;
   color: var(--body);
   font-size: var(--fs-sm);
   font-style: italic;
+}
+.header-search__results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .nav {
@@ -1514,6 +1522,7 @@ main {
     min-inline-size: unset;
     inline-size: calc(100dvw - 2rem);
     inset-inline: -0.5rem;
+    max-block-size: 60dvh;
   }
   .nav-toggle {
     display: inline-flex;

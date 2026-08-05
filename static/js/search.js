@@ -1,84 +1,48 @@
-/* Full-text search over the RTI response PDFs — the UI half.
-
-   The page works without this file: templates/search.html already renders every
-   document as a plain, linked list. This adds searching *inside* the documents.
-
-   All the cost (fetch, parse, index, query) lives in search.worker.js, so this
-   file only spawns the worker on first use, shows state, and renders hits.
-   Nothing is downloaded for readers who never touch the search box. */
 (() => {
   "use strict";
 
-  const root = document.querySelector("[data-rti-search]");
-  if (!root || typeof Worker === "undefined") return;
-
-  const form = root.querySelector(".search-form");
-  const input = root.querySelector(".search-input");
-  const status = root.querySelector(".search-status");
-  const results = root.querySelector(".search-results");
-  const browse = document.querySelector("[data-rti-browse]");
   const DEBOUNCE = 180;
 
   let worker = null;
   let ready = false;
-  let seq = 0; // guards against an older query resolving after a newer one
+  let seq = 0;
   let pending = null;
-  let timer = null;
 
-  // The form only exists to make Enter behave; searching is live.
-  form.addEventListener("submit", (e) => e.preventDefault());
+  const listeners = new Set();
 
-  const say = (msg) => {
-    status.textContent = msg;
-  };
-
-  const boot = () => {
+  function boot(urls) {
     if (worker) return;
     try {
-      worker = new Worker(root.dataset.worker);
+      worker = new Worker(urls.worker);
     } catch {
-      // Worker unavailable (blocked, or opened over file://). The document
-      // list below is still the whole point of the page.
-      say("Search is unavailable here. The document list below still works.");
-      return;
+      return false;
     }
-    say("Loading the documents…");
 
     worker.addEventListener("message", ({ data }) => {
       if (data.type === "ready") {
         ready = true;
-        say(`Ready — searching ${data.docs} documents.`);
         if (pending !== null) {
           const q = pending;
           pending = null;
-          send(q);
+          doSend(q);
         }
-        return;
       }
-      if (data.type === "error") {
-        say("Could not load the search index. The document list below still works.");
-        return;
-      }
-      if (data.type === "results" && data.seq === seq) render(data);
+      for (const fn of listeners) fn(data);
     });
 
-    worker.addEventListener("error", () => {
-      say("Search failed to start. The document list below still works.");
-    });
+    worker.addEventListener("error", () => {});
+    worker.postMessage({ type: "init", url: urls.index });
+    return true;
+  }
 
-    worker.postMessage({ type: "init", url: root.dataset.index });
-  };
-
-  const send = (q) => {
+  function doSend(q) {
     if (!ready) {
-      pending = q; // replayed once the worker reports ready
+      pending = q;
       return;
     }
     worker.postMessage({ type: "query", q, seq: ++seq });
-  };
+  }
 
-  /* Build the excerpt as text nodes with <mark> around matched terms — never
-     innerHTML, since this text comes out of OCR and is not ours to trust. */
   const markUp = (text, terms) => {
     const frag = document.createDocumentFragment();
     const escaped = terms
@@ -102,84 +66,223 @@
     return frag;
   };
 
-  const render = ({ hits, total }) => {
-    results.replaceChildren();
+  /* ------------------------------------------------------------------
+     Nav-dropdown search  (global, every page)
+     ------------------------------------------------------------------ */
+  const navRoot = document.querySelector(".header-search[data-rti-search]");
+  if (navRoot) {
+    const form = navRoot.querySelector(".header-search__form");
+    const input = navRoot.querySelector(".header-search__input");
+    const drop = navRoot.querySelector(".header-search__drop");
+    const urls = {
+      index: navRoot.dataset.index,
+      worker: navRoot.dataset.worker,
+    };
+    const searchUrl = navRoot.dataset.searchUrl;
+    let mySeq = 0;
+    let timer = null;
 
-    if (!hits.length) {
-      say("No matches. Try fewer or different words.");
-      if (browse) browse.hidden = false;
-      return;
+    form.addEventListener("submit", (e) => e.preventDefault());
+
+    input.addEventListener(
+      "focus",
+      () => {
+        boot(urls);
+      },
+      { once: true }
+    );
+
+    listeners.add(({ data }) => {
+      if (data.type !== "results" || data.seq !== mySeq) return;
+      renderDrop(data);
+    });
+
+    function renderDrop({ hits, total }) {
+      drop.replaceChildren();
+      const q = input.value.trim();
+
+      if (!hits || !hits.length) {
+        drop.insertAdjacentHTML(
+          "beforeend",
+          '<div class="header-search__empty">No matches</div>'
+        );
+        drop.hidden = false;
+        return;
+      }
+
+      const list = document.createElement("ul");
+      list.className = "header-search__results";
+
+      for (let i = 0; i < Math.min(hits.length, 5); i++) {
+        const h = hits[i];
+        const li = document.createElement("li");
+        li.className = "header-search__hit";
+        li.innerHTML =
+          `<a class="header-search__link" href="${h.url}#page=${h.page}" target="_blank" rel="noopener noreferrer"><span>${h.institute}</span> <span class="pill">${h.type}</span></a>` +
+          `<div class="header-search__snippet">${h.excerpt.slice(0, 120)}</div>`;
+        list.append(li);
+      }
+
+      if (total > 5) {
+        const more = document.createElement("li");
+        more.className = "header-search__more";
+        more.innerHTML = `<a href="${searchUrl}?q=${encodeURIComponent(q)}">See all ${total} results</a>`;
+        list.append(more);
+      }
+
+      drop.append(list);
+      drop.hidden = false;
     }
 
-    const shown = hits.length < total ? `Showing ${hits.length} of ${total}` : `${total}`;
-    say(`${shown} matching page${total === 1 ? "" : "s"}.`);
-    if (browse) browse.hidden = true;
+    input.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const q = input.value.trim();
+        if (!q) {
+          drop.hidden = true;
+          drop.replaceChildren();
+          return;
+        }
+        boot(urls);
+        if (ready) {
+          mySeq = ++seq;
+          worker.postMessage({ type: "query", q, seq: mySeq });
+        }
+      }, DEBOUNCE);
+    });
 
-    for (const hit of hits) {
-      const li = document.createElement("li");
-      li.className = "search-hit";
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        input.value = "";
+        drop.hidden = true;
+        drop.replaceChildren();
+      }
+    });
 
-      const a = document.createElement("a");
-      a.className = "search-hit__link";
-      // #page=N is honoured by the built-in PDF viewers in Chrome, Firefox,
-      // Edge and Safari, so a hit opens on the page it was found.
-      a.href = `${hit.url}#page=${hit.page}`;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.textContent = hit.institute;
+    document.addEventListener("click", (e) => {
+      if (!navRoot.contains(e.target)) {
+        drop.hidden = true;
+        drop.replaceChildren();
+      }
+    });
+  }
 
-      const meta = document.createElement("p");
-      meta.className = "search-hit__meta";
-      const pill = document.createElement("span");
-      pill.className = "pill";
-      pill.textContent = hit.type;
-      meta.append(pill, ` Page ${hit.page} of ${hit.pages}`);
+  /* ------------------------------------------------------------------
+     Full-page search  (/search page)
+     ------------------------------------------------------------------ */
+  const pageRoot = document.querySelector(".rti-search[data-rti-search]");
+  if (pageRoot) {
+    const form = pageRoot.querySelector(".search-form");
+    const input = pageRoot.querySelector(".search-input");
+    const status = pageRoot.querySelector(".search-status");
+    const results = pageRoot.querySelector(".search-results");
+    const browse = document.querySelector("[data-rti-browse]");
+    const urls = {
+      index: pageRoot.dataset.index,
+      worker: pageRoot.dataset.worker,
+    };
+    let mySeq = 0;
+    let timer = null;
 
-      const snippet = document.createElement("p");
-      snippet.className = "search-hit__excerpt";
-      snippet.append(markUp(hit.excerpt, hit.terms));
+    form.addEventListener("submit", (e) => e.preventDefault());
 
-      li.append(a, meta, snippet);
-      results.append(li);
-    }
-  };
+    const say = (msg) => {
+      status.textContent = msg;
+    };
 
-  const onInput = () => {
-    const q = input.value.trim();
+    input.addEventListener(
+      "focus",
+      () => {
+        boot(urls);
+        if (!ready) say("Loading the documents…");
+      },
+      { once: true }
+    );
 
-    // Keep the query in the URL so a search is a shareable link.
-    const url = new URL(location.href);
-    if (q) url.searchParams.set("q", q);
-    else url.searchParams.delete("q");
-    history.replaceState(null, "", url);
+    listeners.add(({ data }) => {
+      if (data.type === "ready") {
+        ready = true;
+        say("Ready");
+      }
+      if (data.type === "results" && data.seq === mySeq) render(data);
+    });
 
-    if (!q) {
-      seq++; // invalidate anything in flight
+    function render({ hits, total }) {
       results.replaceChildren();
-      say("");
-      if (browse) browse.hidden = false;
-      return;
+
+      if (!hits.length) {
+        say("No matches. Try a different term.");
+        if (browse) browse.hidden = false;
+        return;
+      }
+
+      const shown = hits.length < total ? `Showing ${hits.length} of ${total}` : `${total}`;
+      say(`${shown} matching page${total === 1 ? "" : "s"}.`);
+      if (browse) browse.hidden = true;
+
+      for (const hit of hits) {
+        const li = document.createElement("li");
+        li.className = "search-hit";
+
+        const a = document.createElement("a");
+        a.className = "search-hit__link";
+        a.href = `${hit.url}#page=${hit.page}`;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = hit.institute;
+
+        const meta = document.createElement("p");
+        meta.className = "search-hit__meta";
+        const pill = document.createElement("span");
+        pill.className = "pill";
+        pill.textContent = hit.type;
+        meta.append(pill, ` Page ${hit.page} of ${hit.pages}`);
+
+        const snippet = document.createElement("p");
+        snippet.className = "search-hit__excerpt";
+        snippet.append(markUp(hit.excerpt, hit.terms));
+
+        li.append(a, meta, snippet);
+        results.append(li);
+      }
     }
 
-    boot();
-    send(q);
-  };
+    const onInput = () => {
+      const q = input.value.trim();
+      const url = new URL(location.href);
+      if (q) url.searchParams.set("q", q);
+      else url.searchParams.delete("q");
+      history.replaceState(null, "", url);
 
-  input.addEventListener("focus", boot, { once: true });
-  input.addEventListener("input", () => {
-    clearTimeout(timer);
-    timer = setTimeout(onInput, DEBOUNCE);
-  });
-  input.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape" || !input.value) return;
-    input.value = "";
-    onInput();
-  });
+      if (!q) {
+        mySeq = ++seq;
+        results.replaceChildren();
+        say("");
+        if (browse) browse.hidden = false;
+        return;
+      }
 
-  // Run a query supplied in the URL (?q=autodesk) on load.
-  const initial = new URLSearchParams(location.search).get("q");
-  if (initial) {
-    input.value = initial;
-    onInput();
+      if (ready) {
+        mySeq = ++seq;
+        worker.postMessage({ type: "query", q, seq: mySeq });
+      }
+    };
+
+    input.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(onInput, DEBOUNCE);
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || !input.value) return;
+      input.value = "";
+      onInput();
+    });
+
+    const initial = new URLSearchParams(location.search).get("q");
+    if (initial) {
+      input.value = initial;
+      onInput();
+    }
   }
 })();

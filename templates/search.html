@@ -62,10 +62,8 @@
               {% if not name is matching("\.[A-Za-z0-9]+$") %}{% set name = name ~ ".pdf" %}{% endif %}
               <li>
                 <a href="{{ base }}{{ name }}" target="_blank" rel="noopener noreferrer">
-                  {{ row[1] }}{% if parts | length > 1 %} <span class="doc-list__part">(part {{ loop.index }})</span>{% endif %}
+                  {{ row[1] }}{% if parts | length > 1 %} <span class="doc-list__part">({{ loop.index }})</span>{% endif %}
                 </a>
-                <span class="pill">{{ row[0] }}</span>
-                <span class="doc-list__city">{{ row[2] }}</span>
               </li>
             {% endif %}
           {% endfor %}

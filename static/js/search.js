@@ -91,7 +91,7 @@
       { once: true }
     );
 
-    listeners.add(({ data }) => {
+    listeners.add((data) => {
       if (data.type !== "results" || data.seq !== mySeq) return;
       renderDrop(data);
     });
@@ -220,7 +220,7 @@
       { once: true }
     );
 
-    listeners.add(({ data }) => {
+    listeners.add((data) => {
       if (data.type === "ready") {
         ready = true;
         say("Ready");

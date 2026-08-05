@@ -186,6 +186,15 @@
         drop.replaceChildren();
       }
     });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey) return;
+      const el = document.activeElement;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
+      e.preventDefault();
+      input.focus();
+      input.select();
+    });
   }
 
   /* ------------------------------------------------------------------

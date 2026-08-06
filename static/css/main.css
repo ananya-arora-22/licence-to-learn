@@ -834,6 +834,18 @@ main {
 .rating--c {
   color: var(--bad);
 }
+.pill--type {
+  border: 1px solid var(--body);
+  background: transparent;
+  color: var(--body);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
 .col--link a {
   display: inline-flex;
   color: var(--accent);
@@ -1145,27 +1157,20 @@ main {
   align-items: center;
   gap: 0.4rem;
 }
-.card-info {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-end: 0;
-  inline-size: 1.1rem;
-  block-size: 1.1rem;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--accent);
-  font-family: var(--font-sans);
-  font-size: 0.65rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  display: inline-grid;
-  place-items: center;
+.spend-card__link {
+  color: inherit;
+  text-decoration: none;
 
+  /* Stretched-link: the whole card is clickable, but the accessible name
+     stays on this one link inside the heading. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
   &:hover,
   &:focus-visible {
-    border-color: var(--accent);
+    color: var(--accent);
   }
 }
 .spend-card__eyebrow {
@@ -1196,7 +1201,6 @@ main {
   display: flex;
   align-items: stretch;
   gap: 0.6rem;
-  padding-inline-end: 1.5rem; /* room for .card-info */
 }
 .spend-card__amount {
   flex: 1 0 0;
@@ -1233,40 +1237,6 @@ main {
     transparent 6px 12px
   );
   opacity: 0.5;
-}
-.spend-card__stats {
-  position: absolute;
-  inset-block-start: 2.75rem;
-  inset-inline-end: 1rem;
-  z-index: 5;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.6rem 0.9rem;
-  min-inline-size: 15rem;
-  box-shadow: 0 8px 24px oklch(0% 0 0 / 0.35);
-
-  & dl {
-    margin: 0;
-    display: grid;
-    gap: 0.35rem;
-  }
-  & .stat {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    font-family: var(--font-sans);
-    font-size: 0.78rem;
-  }
-  & dt {
-    color: var(--body);
-  }
-  & dd {
-    margin: 0;
-    color: var(--heading);
-    font-variant-numeric: tabular-nums;
-    text-align: end;
-  }
 }
 .spend-card__head {
   display: flex;
@@ -1562,6 +1532,306 @@ main {
 /* ==========================================================================
    Narrow screens: stack hero + reasons
    ========================================================================== */
+/* ==========================================================================
+   Institution page (/data/<institute>/)
+   ========================================================================== */
+.institution__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block: 1.5rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: var(--band);
+
+  & h1 {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--heading);
+  }
+}
+.institution__id {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.institution__city {
+  margin-block-start: -0.3rem;
+  color: var(--body);
+  font-size: var(--fs-sm);
+}
+.institution__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.institution__total {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: var(--bg);
+  text-align: end;
+}
+.institution__total-amount {
+  color: var(--heading);
+  font-family: var(--font-sans);
+  font-size: 1.3rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.institution__total-label {
+  color: var(--body);
+  font-size: var(--fs-xs);
+}
+.institution__grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 1.2fr);
+  /* Grid rows stretch by default — the chart card matches the stats card's
+     natural height (whichever is taller) instead of sizing to its own
+     content. Reverts to intrinsic/aspect-ratio sizing on mobile, where the
+     two cards stack instead of sitting side by side (see @media below). */
+  gap: var(--gutter);
+  margin-block-end: 1.5rem;
+}
+.institution__card {
+  padding: 1rem;
+  border-radius: 16px;
+  background: var(--band);
+}
+.institution__card--chart {
+  display: flex;
+}
+.institution__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.institution__stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.institution__stat-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--body);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+
+  & .icon {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+}
+.institution__stat-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--heading);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.institution__stat-note {
+  color: var(--body);
+  font-weight: 400;
+}
+.institution__dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-inline-end: 0.3rem;
+}
+.institution__dot {
+  inline-size: 6px;
+  block-size: 14px;
+  border-radius: 2px;
+  background: var(--border);
+
+  &.is-filled {
+    background: var(--accent);
+  }
+}
+.institution__trend {
+  display: inline-block;
+  inline-size: 0;
+  block-size: 0;
+  margin-inline-end: 0.3rem;
+  border-inline: 5px solid transparent;
+
+  &--up {
+    border-block-end: 7px solid var(--ok);
+  }
+  &--down {
+    border-block-start: 7px solid var(--bad);
+  }
+}
+.institution__fy-table {
+  inline-size: 100%;
+  margin-block-start: 0.25rem;
+  border-collapse: collapse;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+
+  & th,
+  & td {
+    padding: 0.5rem;
+  }
+  & thead th {
+    color: var(--accent);
+    font-weight: 600;
+    text-align: start;
+
+    &:last-child {
+      text-align: end;
+    }
+  }
+  & tbody td {
+    color: var(--body);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+
+    &:last-child {
+      color: var(--heading);
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+      text-transform: none;
+      text-align: end;
+    }
+  }
+  & .institution__fy-total td {
+    border-block-start: 0.6px solid var(--border);
+  }
+}
+.institution__section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-block: 0 1rem;
+  color: var(--body);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+
+  & .icon {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+}
+.institution__software {
+  margin-block-end: 1.5rem;
+}
+.institution__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-block-end: 1.5rem;
+
+  & p {
+    margin: 0;
+    color: var(--body);
+  }
+}
+.institution__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+.institution-action {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 4px 8px 4px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--band);
+  font-family: var(--font-sans);
+  cursor: pointer;
+
+  & .institution-action__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent);
+    font-size: 1rem;
+    font-weight: 500;
+
+    & .icon {
+      inline-size: 18px;
+      block-size: 18px;
+    }
+  }
+  & .institution-action__note {
+    color: var(--body);
+    font-size: var(--fs-xs);
+  }
+}
+
+/* Full-size bar chart (institution page). Shares the data-values/data-labels
+   contract with .linechart; static/js/chart.js's drawBar() picks it up via
+   the .barchart class. */
+.barchart {
+  position: relative;
+  flex: 1;
+  inline-size: 100%;
+  color: var(--body);
+  font-size: var(--fs-sm);
+}
+.barchart__svg {
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+.barchart__bar {
+  cursor: pointer;
+  transition: opacity 0.12s;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 0.85;
+    outline: none;
+  }
+}
+.barchart__callout {
+  position: absolute;
+  inset-block-start: -0.5rem;
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px 8px 8px 0;
+  background: #181615;
+  color: var(--heading);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+
+  & span {
+    color: var(--body);
+    font-size: 0.65rem;
+    font-weight: 400;
+  }
+}
+
 @media (width <= 40rem) {
   /* width toggle is meaningless on a phone; tables default to Fit (JS) */
   .table-modes {
@@ -1618,5 +1888,31 @@ main {
       inline-size: 100%;
       max-inline-size: 188px;
     }
+  }
+  .institution__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .institution__total {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    text-align: start;
+  }
+  .institution__grid {
+    grid-template-columns: 1fr;
+  }
+  /* Stacked (not side-by-side) — go back to the chart's own intrinsic
+     aspect ratio instead of stretching to match a peer that's no longer
+     in the same row. */
+  .institution__card--chart {
+    align-items: center;
+  }
+  .barchart {
+    flex: none;
+  }
+  .barchart__svg {
+    block-size: auto;
+    aspect-ratio: 320 / 190;
   }
 }

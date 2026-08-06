@@ -149,9 +149,81 @@
       callout.className = "linechart__callout";
       const yr = labels[idx] || "";
       const m = yr.match(/-(\d{2})$/);
-      const shortYr = m ? `AY${m[1]}` : yr;
+      const shortYr = m ? `FY${m[1]}` : yr;
       const short = shortINR(values[idx]);
       callout.innerHTML = `<b>${short || fmtFull.format(values[idx])}</b><span>(${shortYr})</span>`;
+      box.append(callout);
+    }
+  };
+
+  // Full-size bar chart (institution page): gradient bars, gridlines shared
+  // with draw() above, a hatch pattern standing in for zero/unreported
+  // years (rather than a misleadingly-flat solid bar), and a callout on the
+  // highest-value bar.
+  const drawBar = (box) => {
+    const values = (box.dataset.values || "").split(",").map(num);
+    const labels = (box.dataset.labels || "").split(",");
+    if (!values.length) return;
+
+    const W = 320, H = 190, padL = 30, padR = 4, padT = 20, padB = 22, gap = 7;
+    const max = Math.max(...values, 1);
+    const n = values.length;
+    const barW = (W - padL - padR - gap * (n - 1)) / n;
+    const x = (i) => padL + i * (barW + gap);
+    const barH = (v) => Math.max(2, (v / max) * (H - padT - padB));
+
+    const uid = `bc${n}_${Math.round(max)}`;
+    // preserveAspectRatio="none": the CSS lets this stretch to match the
+    // stats card's height on desktop (see .institution__grid), rather than
+    // fixed at 320:190 and letterboxed inside a taller box.
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", class: "barchart__svg", role: "img" });
+    svg.setAttribute("aria-label", box.getAttribute("aria-label") || "spending by year");
+
+    const defs = el("defs", {});
+    const grad = el("linearGradient", { id: uid, x1: 0, y1: 0, x2: 0, y2: 1 });
+    grad.append(el("stop", { offset: "0%", "stop-color": "var(--accent)", "stop-opacity": "1" }));
+    grad.append(el("stop", { offset: "100%", "stop-color": "var(--accent)", "stop-opacity": "0.2" }));
+    defs.append(grad);
+    const hatchId = `${uid}h`;
+    const hatch = el("pattern", { id: hatchId, patternUnits: "userSpaceOnUse", width: "5", height: "5", patternTransform: "rotate(45)" });
+    hatch.append(el("line", { x1: "0", y1: "0", x2: "0", y2: "5", stroke: "var(--body)", "stroke-width": "2", opacity: "0.5" }));
+    defs.append(hatch);
+    svg.append(defs);
+
+    ticks(0, max, 4).forEach((v) => {
+      const yy = padT + (1 - v / max) * (H - padT - padB);
+      svg.append(el("line", { x1: padL, y1: yy.toFixed(1), x2: W - padR, y2: yy.toFixed(1), class: "lc-grid" }));
+      svg.append(el("text", { x: padL - 6, y: (yy + 3).toFixed(1), class: "lc-ylabel", "text-anchor": "end" }, axisShort(v)));
+    });
+
+    labels.forEach((lab, i) => {
+      svg.append(el("text", { x: (x(i) + barW / 2).toFixed(1), y: H - padB + 14, class: "lc-xlabel", "text-anchor": "middle" }, lab));
+    });
+
+    let maxI = 0;
+    values.forEach((v, i) => { if (v > values[maxI]) maxI = i; });
+
+    values.forEach((v, i) => {
+      const h = barH(v);
+      const bar = el("rect", {
+        x: x(i).toFixed(1), y: (H - padB - h).toFixed(1), width: barW.toFixed(1), height: h.toFixed(1),
+        rx: "4", fill: v > 0 ? `url(#${uid})` : `url(#${hatchId})`, class: "barchart__bar",
+      });
+      const label = `${labels[i] ? labels[i] + ": " : ""}${valLabel(v)}`;
+      bar.setAttribute("aria-label", label);
+      bar.setAttribute("tabindex", "0");
+      bar.setAttribute("role", "img");
+      svg.append(bar);
+    });
+
+    box.textContent = "";
+    box.append(svg);
+
+    if (values[maxI] > 0) {
+      const callout = document.createElement("div");
+      callout.className = "barchart__callout";
+      callout.style.insetInlineStart = `${((x(maxI) + barW / 2) / W) * 100}%`;
+      callout.innerHTML = `<b>${words(values[maxI])}</b><span>(${labels[maxI] || ""})</span>`;
       box.append(callout);
     }
   };
@@ -161,6 +233,7 @@
     if (box.classList.contains("linechart--mini")) drawMini(box);
     else draw(box, null);
   });
+  document.querySelectorAll(".barchart").forEach(drawBar);
 
   // Format any [data-inr] element as Indian-grouped rupees (card totals).
   document.querySelectorAll("[data-inr]").forEach((n) => {
@@ -168,5 +241,14 @@
     if (!Number.isFinite(v)) return;
     const s = shortINR(v);
     n.textContent = s ? `${fmtFull.format(v)} (${s})` : fmtFull.format(v);
+  });
+
+  // [data-inr-short]: compact form only (e.g. "₹1.9 Cr") — for inline stat
+  // rows (institution page Highest/Lowest) where the full digit count wraps.
+  document.querySelectorAll("[data-inr-short]").forEach((n) => {
+    const v = Number(n.dataset.inrShort);
+    if (!Number.isFinite(v)) return;
+    const s = shortINR(v);
+    n.textContent = s ? `₹${s}` : fmtFull.format(v);
   });
 })();

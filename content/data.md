@@ -3,7 +3,7 @@ title = "Data so far"
 description = "Machine-readable data built from RTI responses. Software, the institutions that use it, and what it costs."
 +++
 
-## Total expenditure as reported by NITs {{ info_tip(text="These numbers are not exhaustive; if anything, they are only the floor. Collected from FY2020-21 to FY2024-25.") }}
+{{ filter_tabs(controls="spend-cards software-cards") }}
 
 {{ spend_counter(csv="data/costs.csv") }}
 
@@ -12,6 +12,8 @@ description = "Machine-readable data built from RTI responses. Software, the ins
 Yearly software expenditure reported by each responding institute. Hover or focus a point to see the amount.
 
 {{ spend_cards(csv="data/costs.csv") }}
+
+{{ software_cards(csv="data/software.csv") }}
 
 ## Software dependencies mapped
 

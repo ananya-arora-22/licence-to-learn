@@ -1,8 +1,14 @@
 {# Reusable UI. Import: {% import "macros/ui.html" as ui %} #}
 
-{# Tabler-style inline icons (stroke = currentColor). For external callers. #}
+{# Tabler-style inline icons (stroke = currentColor). For external callers.
+   viewBox varies per icon (native Tabler units) — width/height stay fixed so
+   display size never depends on it; every icon here is square so no distortion. #}
 {% macro icon(name) %}
-<svg class="icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{% set vb = "0 0 24 24" %}
+{% if name == "circle-dashed-check" or name == "circle-dashed-x" or name == "search" %}{% set vb = "0 0 18 18" %}
+{% elif name == "arrows-sort" %}{% set vb = "0 0 16 16" %}
+{% endif %}
+<svg class="icon" viewBox="{{ vb }}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 {%- if name == "arrow-right" -%}
   <path d="M5 12h14"/><path d="M13 6l6 6l-6 6"/>
 {%- elif name == "chevron-down" -%}
@@ -17,6 +23,14 @@
   <path d="M18 6l-12 12"/><path d="M6 6l12 12"/>
 {%- elif name == "download" -%}
   <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/>
+{%- elif name == "circle-dashed-check" -%}
+  <path d="M6.41974 2.76746C5.6008 3.10645 4.85664 3.6034 4.22974 4.22996M2.7675 6.42004C2.42742 7.23777 2.25158 8.11442 2.25 9.00004M2.76782 11.58C3.10681 12.3989 3.60377 13.1431 4.23032 13.77M6.41968 15.2325C7.2374 15.5726 8.11406 15.7485 8.99968 15.75M11.5803 15.2324C12.3993 14.8934 13.1434 14.3965 13.7703 13.7699M15.2322 11.58C15.5723 10.7623 15.7481 9.88562 15.7497 9M15.2328 6.4201C14.8938 5.60116 14.3968 4.857 13.7703 4.2301M11.58 2.7675C10.7623 2.42742 9.88562 2.25158 9 2.25M6.75 9L8.25 10.5L11.25 7.5"/>
+{%- elif name == "circle-dashed-x" -%}
+  <path d="M6.41974 2.76746C5.6008 3.10645 4.85664 3.6034 4.22974 4.22996M2.7675 6.42004C2.42742 7.23777 2.25158 8.11442 2.25 9.00004M2.76782 11.58C3.10681 12.3989 3.60377 13.1431 4.23032 13.77M6.41968 15.2325C7.2374 15.5726 8.11406 15.7485 8.99968 15.75M11.5803 15.2324C12.3993 14.8934 13.1434 14.3965 13.7703 13.7699M15.2322 11.58C15.5723 10.7623 15.7481 9.88562 15.7497 9M15.2328 6.4201C14.8938 5.60116 14.3968 4.857 13.7703 4.2301M11.58 2.7675C10.7623 2.42742 9.88562 2.25158 9 2.25M10.5 10.5L7.5 7.5M7.5 10.5L10.5 7.5"/>
+{%- elif name == "search" -%}
+  <path d="M15.75 15.75L11.25 11.25M2.25 7.5C2.25 8.18944 2.3858 8.87213 2.64963 9.50909C2.91347 10.146 3.30018 10.7248 3.78769 11.2123C4.2752 11.6998 4.85395 12.0865 5.49091 12.3504C6.12787 12.6142 6.81056 12.75 7.5 12.75C8.18944 12.75 8.87213 12.6142 9.50909 12.3504C10.146 12.0865 10.7248 11.6998 11.2123 11.2123C11.6998 10.7248 12.0865 10.146 12.3504 9.50909C12.6142 8.87213 12.75 8.18944 12.75 7.5C12.75 6.81056 12.6142 6.12787 12.3504 5.49091C12.0865 4.85395 11.6998 4.2752 11.2123 3.78769C10.7248 3.30018 10.146 2.91347 9.50909 2.64963C8.87213 2.3858 8.18944 2.25 7.5 2.25C6.81056 2.25 6.12787 2.3858 5.49091 2.64963C4.85395 2.91347 4.2752 3.30018 3.78769 3.78769C3.30018 4.2752 2.91347 4.85395 2.64963 5.49091C2.3858 6.12787 2.25 6.81056 2.25 7.5Z"/>
+{%- elif name == "arrows-sort" -%}
+  <path d="M7.33333 5.99981L4.66667 3.33315L2 5.99981M4.66667 3.33315V12.6665M8.66667 9.99981L11.3333 12.6665L14 9.99981M11.3333 12.6665V3.33315"/>
 {%- endif -%}
 </svg>
 {% endmacro icon %}
@@ -49,6 +63,26 @@
   </div>
 </details>
 {% endmacro take_action %}
+
+{# Institute-type filter tabs. active: one of NIT/IIIT/IIM/AIIMS/Other/All.
+   controls: space-separated ids of the [data-card-grid]s this bar filters —
+   static/js/cards.js reads data-controls to fold tab clicks into each grid's
+   own search/sort/collapse pass, and to swap any [data-type-swap] heading
+   elsewhere on the page (see spend_counter/software_cards). Wrapped in a
+   sticky outer shell so the bar stays pinned at the top of the viewport for
+   the whole page scroll, not just within one section. #}
+{% macro filter_tabs(active="NIT", controls="") %}
+{% set types = ["NIT", "IIIT", "IIM", "AIIMS", "Other"] %}
+<div class="filter-tabs-sticky">
+  <div class="filter-tabs" data-filter-tabs data-controls="{{ controls }}" role="tablist" aria-label="Filter by institute type">
+    <span class="filter-tabs__label">Filter by</span>
+    {% for t in types %}
+    <button type="button" class="filter-tab{% if t == active %} is-active{% endif %}" role="tab" aria-selected="{{ t == active }}" data-type="{{ t }}">{{ t }}</button>
+    {% endfor %}
+    <button type="button" class="filter-tab{% if active == "All" %} is-active{% endif %}" role="tab" aria-selected="{{ active == "All" }}" data-type="">All</button>
+  </div>
+</div>
+{% endmacro filter_tabs %}
 
 {% macro breadcrumb(current, mid_label="", mid_href="") %}
 <nav class="breadcrumb wrap" aria-label="Breadcrumb">

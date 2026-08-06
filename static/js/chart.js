@@ -112,8 +112,55 @@
     box.append(svg, tip);
   };
 
+  // Compact 5-bar sparkline (institute cards): bars + a callout on the latest
+  // reported year. Shares the values/labels contract with the full chart above.
+  const drawMini = (box) => {
+    const values = (box.dataset.values || "").split(",").map(num);
+    const labels = (box.dataset.labels || "").split(",");
+    if (!values.length) return;
+
+    const W = 140, H = 72, gap = 4;
+    const n = values.length;
+    const barW = (W - gap * (n - 1)) / n;
+    const max = Math.max(...values, 1);
+
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "linechart__mini-svg", role: "img" });
+    svg.setAttribute("aria-label", box.getAttribute("aria-label") || "spending by year");
+
+    // Callout goes on the latest year that actually has data.
+    let idx = -1;
+    values.forEach((v, i) => { if (v > 0) idx = i; });
+
+    values.forEach((v, i) => {
+      const h = Math.max(4, (v / max) * (H - 4));
+      const x = i * (barW + gap);
+      const y = H - h;
+      svg.append(el("rect", {
+        x: x.toFixed(1), y: y.toFixed(1), width: barW.toFixed(1), height: h.toFixed(1),
+        rx: "2", class: i === idx ? "lcm-bar is-active" : "lcm-bar",
+      }));
+    });
+
+    box.textContent = "";
+    box.append(svg);
+
+    if (idx >= 0) {
+      const callout = document.createElement("div");
+      callout.className = "linechart__callout";
+      const yr = labels[idx] || "";
+      const m = yr.match(/-(\d{2})$/);
+      const shortYr = m ? `AY${m[1]}` : yr;
+      const short = shortINR(values[idx]);
+      callout.innerHTML = `<b>${short || fmtFull.format(values[idx])}</b><span>(${shortYr})</span>`;
+      box.append(callout);
+    }
+  };
+
   // Each card scales to its own max, like a normal standalone chart.
-  document.querySelectorAll(".linechart").forEach((box) => draw(box, null));
+  document.querySelectorAll(".linechart").forEach((box) => {
+    if (box.classList.contains("linechart--mini")) drawMini(box);
+    else draw(box, null);
+  });
 
   // Format any [data-inr] element as Indian-grouped rupees (card totals).
   document.querySelectorAll("[data-inr]").forEach((n) => {

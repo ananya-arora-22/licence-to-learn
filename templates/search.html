@@ -21,6 +21,7 @@
     data-rti-search
     data-index="{{ get_url(path='rti-index.json', cachebust=true) | safe }}"
     data-worker="{{ get_url(path='js/search.worker.js', cachebust=true) | safe }}"
+    data-institute-base="{{ get_url(path='/data/') | safe }}"
   >
     <form class="search-form" role="search">
       <label class="search-form__label" for="rti-q">Search inside the responses</label>

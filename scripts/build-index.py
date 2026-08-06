@@ -30,6 +30,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TRACKER = ROOT / "data" / "tracker.csv"
+INSTITUTES = ROOT / "data" / "institutes.csv"
 SCHEMA = ROOT / "data" / "tracker.schema.json"
 OUT = ROOT / "static" / "rti-index.json"
 CACHE = ROOT / ".cache" / "rti"
@@ -289,7 +290,17 @@ def raw_pages(name, base, langs, quiet):
     return {"pages": pages, "ocr": ocr_pages}
 
 
-def extract(name, row, base, langs, quiet):
+def institute_slugs():
+    """Map institute name -> slug, from the canonical registry in institutes.csv.
+
+    The slug is what individual institute pages (content/data/<slug>.md) are
+    keyed on, so it doubles as the primary key search results link through to.
+    """
+    with INSTITUTES.open(newline="") as fh:
+        return {row["name"].strip(): row["slug"] for row in csv.DictReader(fh)}
+
+
+def extract(name, row, base, slugs, langs, quiet):
     data = raw_pages(name, base, langs, quiet)
     total = len(data["pages"])
     records = []
@@ -301,6 +312,7 @@ def extract(name, row, base, langs, quiet):
             "ref": name,
             "url": base + name,
             "institute": row["institute"],
+            "slug": slugs.get(row["institute"].strip(), ""),
             "type": row["type"],
             "city": row["city"],
             "page": page,
@@ -312,13 +324,14 @@ def extract(name, row, base, langs, quiet):
 
 def build(jobs, quiet):
     base, langs = base_url(), ocr_langs()
+    slugs = institute_slugs()
     rows = refs_from_tracker()
     if not quiet:
         print(f"{len(rows)} documents, OCR languages: {langs}", flush=True)
 
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         results = list(pool.map(
-            lambda r: extract(r[0], r[1], base, langs, quiet), rows
+            lambda r: extract(r[0], r[1], base, slugs, langs, quiet), rows
         ))
 
     records = [r for group in results for r in group]

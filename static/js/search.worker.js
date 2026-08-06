@@ -96,6 +96,7 @@ self.addEventListener("message", async ({ data }) => {
       return {
         url: doc.url,
         institute: doc.institute,
+        slug: doc.slug,
         type: doc.type,
         page: doc.page,
         pages: doc.pages,

@@ -43,6 +43,13 @@
     worker.postMessage({ type: "query", q, seq: ++seq });
   }
 
+  // A hit's landing page is the institute's own page, not the raw RTI PDF —
+  // the institute page is the primary key everywhere else in the site, and
+  // it links out to the PDF itself. Falls back to the PDF if a hit predates
+  // institute pages (no slug yet in the index).
+  const instituteUrl = (base, hit) =>
+    hit.slug ? `${base.replace(/\/$/, "")}/${hit.slug}/` : `${hit.url}#page=${hit.page}`;
+
   const markUp = (text, terms) => {
     const frag = document.createDocumentFragment();
     const escaped = terms
@@ -67,13 +74,16 @@
   };
 
   /* ------------------------------------------------------------------
-     Nav-dropdown search  (global, every page)
+     Nav search  (global, every page) — icon trigger opens a centered modal
      ------------------------------------------------------------------ */
   const navRoot = document.querySelector(".header-search[data-rti-search]");
   if (navRoot) {
+    const trigger = navRoot.querySelector(".header-search__trigger");
+    const modal = navRoot.querySelector(".header-search__modal");
     const form = navRoot.querySelector(".header-search__form");
     const input = navRoot.querySelector(".header-search__input");
     const drop = navRoot.querySelector(".header-search__drop");
+    const instituteBase = navRoot.dataset.instituteBase;
     const urls = {
       index: navRoot.dataset.index,
       worker: navRoot.dataset.worker,
@@ -81,15 +91,30 @@
     let mySeq = 0;
     let timer = null;
 
-    form.addEventListener("submit", (e) => e.preventDefault());
+    const openModal = () => {
+      modal.hidden = false;
+      boot(urls);
+      input.focus();
+    };
 
-    input.addEventListener(
-      "focus",
-      () => {
-        boot(urls);
-      },
-      { once: true }
-    );
+    const closeModal = () => {
+      modal.hidden = true;
+      input.value = "";
+      drop.hidden = true;
+      drop.replaceChildren();
+    };
+
+    trigger.addEventListener("click", openModal);
+
+    for (const el of navRoot.querySelectorAll("[data-header-search-close]")) {
+      el.addEventListener("click", closeModal);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !modal.hidden) closeModal();
+    });
+
+    form.addEventListener("submit", (e) => e.preventDefault());
 
     listeners.add((data) => {
       if (data.type !== "results" || data.seq !== mySeq) return;
@@ -120,34 +145,39 @@
         const li = document.createElement("li");
         li.className = "header-search__hit";
 
+        // The whole card is one link — meta/snippet live inside <a>, not
+        // beside it, so a click anywhere on the result (not just the title
+        // line) navigates.
         const a = document.createElement("a");
         a.className = "header-search__link";
-        a.href = `${h.url}#page=${h.page}`;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
+        a.href = instituteUrl(instituteBase, h);
+
+        const title = document.createElement("div");
+        title.className = "header-search__title";
 
         const name = document.createElement("span");
         name.className = "header-search__name";
         name.textContent = h.institute;
-        a.append(name);
+        title.append(name);
 
         const pill = document.createElement("span");
         pill.className = "pill";
         pill.textContent = h.type;
-        a.append(pill);
+        title.append(pill);
 
-        li.append(a);
+        a.append(title);
 
         const meta = document.createElement("div");
         meta.className = "header-search__meta";
         meta.textContent = `Page ${h.page} of ${h.pages}`;
-        li.append(meta);
+        a.append(meta);
 
         const snippet = document.createElement("div");
         snippet.className = "header-search__snippet";
         snippet.append(markUp(h.excerpt, h.terms));
-        li.append(snippet);
+        a.append(snippet);
 
+        li.append(a);
         list.append(li);
       }
 
@@ -172,28 +202,12 @@
       }, DEBOUNCE);
     });
 
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        input.value = "";
-        drop.hidden = true;
-        drop.replaceChildren();
-      }
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!navRoot.contains(e.target)) {
-        drop.hidden = true;
-        drop.replaceChildren();
-      }
-    });
-
     document.addEventListener("keydown", (e) => {
       if (e.key !== "/" || e.metaKey || e.ctrlKey) return;
       const el = document.activeElement;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
       e.preventDefault();
-      input.focus();
-      input.select();
+      openModal();
     });
   }
 
@@ -207,6 +221,7 @@
     const status = pageRoot.querySelector(".search-status");
     const results = pageRoot.querySelector(".search-results");
     const browse = document.querySelector("[data-rti-browse]");
+    const instituteBase = pageRoot.dataset.instituteBase;
     const urls = {
       index: pageRoot.dataset.index,
       worker: pageRoot.dataset.worker,
@@ -254,12 +269,16 @@
         const li = document.createElement("li");
         li.className = "search-hit";
 
+        // The whole card is one link — meta/snippet live inside <a>, not
+        // beside it, so a click anywhere on the result navigates.
         const a = document.createElement("a");
         a.className = "search-hit__link";
-        a.href = `${hit.url}#page=${hit.page}`;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        a.textContent = hit.institute;
+        a.href = instituteUrl(instituteBase, hit);
+
+        const title = document.createElement("span");
+        title.className = "search-hit__title";
+        title.textContent = hit.institute;
+        a.append(title);
 
         const meta = document.createElement("p");
         meta.className = "search-hit__meta";
@@ -267,12 +286,14 @@
         pill.className = "pill";
         pill.textContent = hit.type;
         meta.append(pill, ` Page ${hit.page} of ${hit.pages}`);
+        a.append(meta);
 
         const snippet = document.createElement("p");
         snippet.className = "search-hit__excerpt";
         snippet.append(markUp(hit.excerpt, hit.terms));
+        a.append(snippet);
 
-        li.append(a, meta, snippet);
+        li.append(a);
         results.append(li);
       }
     }

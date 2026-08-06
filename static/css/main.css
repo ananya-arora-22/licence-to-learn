@@ -201,27 +201,67 @@ main {
   }
 }
 
-/* Header (global) search bar, sits between the brand and the nav. */
+/* Header (global) search: a compact icon that opens a centered modal. */
 .header-search {
   position: relative;
-  flex: 0 1 280px;
   margin-inline-start: auto;
-  margin-inline-end: 1rem;
+  margin-inline-end: 0.5rem;
+}
+.header-search__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+
+  &:hover {
+    background: oklch(from var(--surface) calc(l + 0.03) c h);
+  }
+}
+.header-search__modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  justify-content: center;
+  padding-block-start: min(15vh, 8rem);
+  padding-inline: 1rem;
+
+  &:not([hidden]) {
+    display: flex;
+  }
+}
+.header-search__backdrop {
+  position: absolute;
+  inset: 0;
+  background: oklch(0% 0 0 / 0.55);
+  backdrop-filter: blur(2px);
+}
+.header-search__panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+  max-inline-size: 560px;
+  max-block-size: min(70vh, 640px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 16px 48px oklch(0% 0 0 / 0.45);
+  overflow: hidden;
 }
 .header-search__form {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.55rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  transition: border-color 0.15s ease;
-
-  &:focus-within {
-    border-color: var(--btn);
-    box-shadow: 0 0 0 2px oklch(from var(--btn) l c h / 0.15);
-  }
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  border-block-end: 1px solid var(--border);
 }
 .header-search__icon {
   flex: none;
@@ -230,11 +270,11 @@ main {
 .header-search__input {
   flex: 1 1 auto;
   min-inline-size: 0;
-  padding: 0.35em 0;
+  padding: 0.2em 0;
   border: 0;
   background: transparent;
   color: var(--heading);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-family: var(--font-sans);
 
   &:focus {
@@ -247,19 +287,34 @@ main {
     appearance: none;
   }
 }
+.header-search__close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--body);
+  cursor: pointer;
+
+  &:hover {
+    background: oklch(from var(--surface) calc(l + 0.05) c h);
+    color: var(--heading);
+  }
+  & .icon {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+}
 .header-search__drop {
-  position: absolute;
-  inset-block-start: 100%;
-  inset-inline: 0;
-  z-index: 70;
-  margin-block-start: 6px;
-  min-inline-size: 360px;
-  max-block-size: 70dvh;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: 0 8px 24px oklch(0% 0 0 / 0.4);
+  flex: 1 1 auto;
   overflow: hidden auto;
+}
+.header-search__drop:not([hidden]) {
+  display: block;
 }
 .header-search__header {
   padding: 0.5rem 0.85rem;
@@ -269,25 +324,30 @@ main {
   font-weight: 500;
 }
 .header-search__hit {
-  padding: 0.75rem 0.85rem;
   border-block-start: 1px solid var(--border);
   font-size: var(--fs-sm);
-  cursor: default;
 
   &:first-child {
     border-block-start: 0;
   }
-  &:hover {
+}
+.header-search__link {
+  display: block;
+  padding: 0.75rem 0.85rem;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
     background: oklch(from var(--surface) calc(l + 0.02) c h);
   }
 }
-.header-search__link {
+.header-search__title {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   color: var(--accent);
   font-weight: 600;
-  text-decoration: none;
 }
 .header-search__meta {
   margin-block-start: 0.15rem;
@@ -1676,7 +1736,6 @@ main {
   list-style: none;
 }
 .search-hit {
-  padding-block: 1.1rem;
   border-block-start: 1px solid var(--border);
 
   &:first-child {
@@ -1691,6 +1750,17 @@ main {
   }
 }
 .search-hit__link {
+  display: block;
+  padding-block: 1.1rem;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    background: oklch(from var(--surface) calc(l + 0.02) c h);
+  }
+}
+.search-hit__title {
   color: var(--accent);
   font-weight: 600;
   font-size: 1.02rem;
@@ -2131,15 +2201,8 @@ main {
   .table-modes {
     display: none;
   }
-  .header-search {
-    flex: 1 1 auto;
-    margin-inline: 0.5rem;
-  }
-  .header-search__drop {
-    min-inline-size: unset;
-    inline-size: calc(100dvw - 2rem);
-    inset-inline: -0.5rem;
-    max-block-size: 60dvh;
+  .header-search__modal {
+    padding-block-start: 4rem;
   }
   .nav-toggle {
     display: inline-flex;

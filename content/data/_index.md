@@ -1,9 +1,13 @@
 +++
 title = "Data so far"
 description = "Machine-readable data built from RTI responses. Software, the institutions that use it, and what it costs."
+template = "data_section.html"
+page_template = "institution.html"
 +++
 
 {{ filter_tabs(controls="spend-cards software-cards") }}
+
+Browse by type: [NITs](/data/nit/) · [IIMs](/data/iim/) · [IIITs](/data/iiit/) · [AIIMS](/data/aiims/) · [Other](/data/other/)
 
 {{ spend_counter(csv="data/costs.csv") }}
 

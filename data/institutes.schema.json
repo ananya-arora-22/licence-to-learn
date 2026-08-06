@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Institute registry — canonical name, type, and location",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["slug", "name", "type", "city", "state", "website"],
+  "properties": {
+    "slug": {
+      "type": "string",
+      "minLength": 1,
+      "x-display": { "label": "Slug", "type": "text", "sort": "text" }
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "x-display": { "label": "Institute", "type": "text", "sort": "text" }
+    },
+    "type": {
+      "type": "string",
+      "enum": ["NIT", "IIM", "IIT", "IIIT", "AIIMS", "Other"],
+      "x-display": {
+        "label": "Type",
+        "type": "tag",
+        "sort": "text",
+        "filter": "select"
+      }
+    },
+    "city": {
+      "type": "string",
+      "x-display": { "label": "City", "type": "text", "sort": "text" }
+    },
+    "state": {
+      "type": ["string", "null"],
+      "x-display": { "label": "State", "type": "text", "sort": "text" }
+    },
+    "website": {
+      "type": ["string", "null"],
+      "x-display": { "label": "Website", "type": "text", "sort": "text" }
+    }
+  }
+}

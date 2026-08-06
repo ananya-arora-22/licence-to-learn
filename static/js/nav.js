@@ -47,4 +47,22 @@
       }
     });
   }
+
+  // "Spread this info" (institution page): copy the page URL, confirm via
+  // the button's own note line instead of a toast.
+  document.querySelectorAll("[data-copy-link]").forEach((btn) => {
+    const note = btn.querySelector(".institution-action__note");
+    const original = note ? note.textContent : "";
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.url || location.href);
+        if (note) {
+          note.textContent = "Copied!";
+          setTimeout(() => { note.textContent = original; }, 1500);
+        }
+      } catch {
+        /* clipboard unavailable (no permission / insecure context) — no-op */
+      }
+    });
+  });
 })();

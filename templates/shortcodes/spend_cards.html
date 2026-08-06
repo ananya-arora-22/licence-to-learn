@@ -58,15 +58,11 @@
           {% if category == "c" %}{{ ui::icon(name="circle-dashed-x") }}{% else %}{{ ui::icon(name="circle-dashed-check") }}{% endif %}
         </span>
       </div>
-      <h3>{{ inst }}</h3>
+      {% set slug = inst | slugify %}
+      <h3><a class="spend-card__link" href="{{ get_url(path='/data/' ~ slug ~ '/') }}">{{ inst }}</a></h3>
       <p class="spend-card__city">{{ city }}</p>
 
       {% if has_cost %}
-      {% set_global tools = 0 %}
-      {% for s in sw.records %}
-        {% set insts = s[1] | split(pat=", ") %}
-        {% if inst in insts %}{% set_global tools = tools + 1 %}{% endif %}
-      {% endfor %}
       <div class="spend-card__body">
         <div class="spend-card__amount">
           <span class="spend-card__total" data-inr="{{ total }}">₹{{ total }}</span>
@@ -77,10 +73,7 @@
              role="img" aria-label="{{ inst }} software spend by year">
           5-year total ₹{{ total }}
         </div>
-        <button type="button" class="card-info" aria-expanded="false"
-                aria-label="{{ inst }} statistics" data-tools="{{ tools }}">i</button>
       </div>
-      <div class="spend-card__stats" role="region" aria-label="{{ inst }} statistics" hidden></div>
       {% else %}
       <div class="spend-card__body spend-card__body--empty">
         <span class="pill pill--status rating--{{ category }}">

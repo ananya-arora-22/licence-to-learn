@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+
+{% block breadcrumb %}
+{{ ui::breadcrumb(current=page.title, mid_label="Data", mid_href=get_url(path="/data/")) }}
+{% endblock %}
+
+{% block content %}
+{% set itype = page.extra.type %}
+{% set institutes = load_data(path="data/institutes.csv") %}
+{% set_global rows = [] %}
+{% for row in institutes.records %}
+  {% if row[2] == itype %}{% set_global rows = rows | concat(with=[row]) %}{% endif %}
+{% endfor %}
+<article class="wrap page">
+  <h1>{{ page.title }}</h1>
+  {% if page.description %}<p class="prose">{{ page.description }}</p>{% endif %}
+
+  {% if rows | length > 0 %}
+  <div class="reasons" style="margin-block-start: 2rem">
+    {% for row in rows %}
+    <a class="nit" href="{{ get_url(path='/data/' ~ row[0] ~ '/') }}">
+      <span class="nit__head"><h2>{{ row[1] }}</h2>{{ ui::icon(name="arrow-up-right") }}</span>
+      {% if row[3] %}<span class="nit__body">{{ row[3] }}</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-note" style="margin-block-start: 2rem">No {{ itype }} institutes tracked yet — coming soon.</p>
+  {% endif %}
+</article>
+{% endblock %}

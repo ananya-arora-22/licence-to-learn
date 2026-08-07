@@ -1406,10 +1406,6 @@ main {
 .software-card__meta {
   min-inline-size: 0;
 }
-/* Qualified with the card class (not just .software-card__name) so this
-   beats .prose h3's margin-block — these cards render inside the .prose
-   wrapper on /data/, and a bare-class selector loses that specificity
-   fight, which was pushing the heading down inside its own row. */
 .software-card .software-card__name {
   margin: 0;
   overflow: hidden;

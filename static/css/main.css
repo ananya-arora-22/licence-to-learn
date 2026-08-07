@@ -1589,6 +1589,47 @@ main {
   color: var(--body);
   font-size: var(--fs-xs);
 }
+
+/* Hoverable "amount row": flat highlight fill + an instant swap from the
+   compact figure to the full one (two sibling spans from the [data-inr]
+   handler in chart.js) — no slide/fade on the text itself, just the
+   background transition. Applied to whichever row actually holds a money
+   figure (5-year total, Highest/Lowest, spend-card totals); the plain
+   Financial-Year table rows get the same treatment directly on <tr>. */
+.amt__full {
+  display: none;
+}
+.amt-row,
+.institution__fy-table tbody tr {
+  transition: background-color 130ms ease;
+}
+/* .institution__total already has its own padding/background/radius as a
+   standalone box; other .amt-row hosts (bare flex rows) get a small bleed
+   so the highlight reads as a row, not just text getting a background. */
+.institution__stat-row.amt-row {
+  padding-inline: 0.5rem;
+  margin-inline: -0.5rem;
+  border-radius: 6px;
+}
+.amt-row:hover,
+.amt-row:focus-within,
+.institution__fy-table tbody tr:hover {
+  /* A translucent lightening overlay reads consistently regardless of the
+     row's own background (--bg on the total/spend-card box, --band on the
+     bare stat-row) — a fixed --surface swap was nearly invisible where the
+     two tokens are this close in lightness. */
+  background: oklch(100% 0 0 / 6%);
+}
+.amt-row:hover .amt__short,
+.amt-row:focus-within .amt__short,
+.institution__fy-table tbody tr:hover .amt__short {
+  display: none;
+}
+.amt-row:hover .amt__full,
+.amt-row:focus-within .amt__full,
+.institution__fy-table tbody tr:hover .amt__full {
+  display: inline;
+}
 .institution__grid {
   display: grid;
   grid-template-columns: minmax(280px, 1fr) minmax(280px, 1.2fr);

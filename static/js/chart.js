@@ -259,14 +259,24 @@
   });
   document.querySelectorAll(".barchart").forEach(drawBar);
 
-  // [data-inr]: compact form by default (e.g. "₹1.9 Cr"); the exact
-  // Indian-grouped figure sits in the native `title` tooltip, revealed on
-  // hover/focus, rather than always showing both at once.
+  // [data-inr]: compact form by default (e.g. "₹1.9 Cr"). Two sibling spans
+  // (.amt__short / .amt__full) so CSS can swap which is visible on
+  // :hover/:focus-within of the nearest .amt-row — an instant text swap, no
+  // JS-driven animation. See .amt-row in main.css.
   document.querySelectorAll("[data-inr]").forEach((n) => {
     const v = Number(n.dataset.inr);
     if (!Number.isFinite(v)) return;
     const s = shortINR(v);
-    n.textContent = s ? `₹${s}` : fmtFull.format(v);
-    if (s) n.title = fmtFull.format(v);
+    const full = fmtFull.format(v);
+    if (!s) { n.textContent = full; return; }
+    n.textContent = "";
+    n.classList.add("amt");
+    const short = document.createElement("span");
+    short.className = "amt__short";
+    short.textContent = `₹${s}`;
+    const fullEl = document.createElement("span");
+    fullEl.className = "amt__full";
+    fullEl.textContent = full;
+    n.append(short, fullEl);
   });
 })();

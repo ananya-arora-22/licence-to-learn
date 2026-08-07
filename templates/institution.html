@@ -96,7 +96,7 @@
       </div>
     </div>
     {% if has_cost %}
-    <div class="institution__total">
+    <div class="institution__total amt-row" tabindex="0">
       <span class="institution__total-amount" data-inr="{{ total }}">₹{{ total }}</span>
       <span class="institution__total-label">Spent last 5 years</span>
     </div>
@@ -123,11 +123,11 @@
         </span>
       </div>
 
-      <div class="institution__stat-row">
+      <div class="institution__stat-row amt-row" tabindex="0">
         <span class="institution__stat-label"><span class="institution__trend institution__trend--up" aria-hidden="true"></span>Highest</span>
         <span class="institution__stat-value"><span data-inr="{{ max_v }}">₹{{ max_v }}</span> <span class="institution__stat-note">({{ years[max_i] }})</span></span>
       </div>
-      <div class="institution__stat-row">
+      <div class="institution__stat-row amt-row" tabindex="0">
         <span class="institution__stat-label"><span class="institution__trend institution__trend--down" aria-hidden="true"></span>Lowest</span>
         <span class="institution__stat-value"><span data-inr="{{ min_v }}">₹{{ min_v }}</span> <span class="institution__stat-note">({{ years[min_i] }})</span></span>
       </div>

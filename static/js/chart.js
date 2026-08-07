@@ -259,10 +259,10 @@
   });
   document.querySelectorAll(".barchart").forEach(drawBar);
 
-  // [data-inr]: compact form by default (e.g. "₹1.9 Cr"). Two sibling spans
-  // (.amt__short / .amt__full) so CSS can swap which is visible on
-  // :hover/:focus-within of the nearest .amt-row — an instant text swap, no
-  // JS-driven animation. See .amt-row in main.css.
+  // [data-inr]: compact form by default (e.g. "₹1.9 Cr"). Short and full
+  // stack as two lines inside a clipped .amt__viewport; CSS translates that
+  // viewport on :hover/:focus-within of the nearest .amt-row, rolling both
+  // as one piece from short to full (and back) — see .amt-row in main.css.
   document.querySelectorAll("[data-inr]").forEach((n) => {
     const v = Number(n.dataset.inr);
     if (!Number.isFinite(v)) return;
@@ -271,12 +271,15 @@
     if (!s) { n.textContent = full; return; }
     n.textContent = "";
     n.classList.add("amt");
+    const viewport = document.createElement("span");
+    viewport.className = "amt__viewport";
     const short = document.createElement("span");
     short.className = "amt__short";
     short.textContent = `₹${s}`;
     const fullEl = document.createElement("span");
     fullEl.className = "amt__full";
     fullEl.textContent = full;
-    n.append(short, fullEl);
+    viewport.append(short, fullEl);
+    n.append(viewport);
   });
 })();

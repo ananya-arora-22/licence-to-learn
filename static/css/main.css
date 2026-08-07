@@ -1590,14 +1590,28 @@ main {
   font-size: var(--fs-xs);
 }
 
-/* Hoverable "amount row": flat highlight fill + an instant swap from the
-   compact figure to the full one (two sibling spans from the [data-inr]
-   handler in chart.js) — no slide/fade on the text itself, just the
-   background transition. Applied to whichever row actually holds a money
-   figure (5-year total, Highest/Lowest, spend-card totals); the plain
-   Financial-Year table rows get the same treatment directly on <tr>. */
+/* Hoverable "amount row": flat highlight fill (background transition) +
+   a one-piece slot-roll of the whole figure — short and full stacked as two
+   lines in a clipped viewport, rolling together as a single unit (not
+   digit-by-digit) from short to full and back. Two sibling spans come from
+   the [data-inr] handler in chart.js. Applied to whichever row actually
+   holds a money figure (5-year total, Highest/Lowest, spend-card totals);
+   the plain Financial-Year table rows get the same treatment on <tr>. */
+.amt {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  line-height: 1.2;
+  block-size: 1.2em;
+}
+.amt__viewport {
+  display: block;
+  transition: transform 220ms cubic-bezier(0.32, 0, 0.2, 1);
+}
+.amt__short,
 .amt__full {
-  display: none;
+  display: block;
+  line-height: 1.2;
 }
 .amt-row,
 .institution__fy-table tbody tr {
@@ -1620,15 +1634,10 @@ main {
      two tokens are this close in lightness. */
   background: oklch(100% 0 0 / 6%);
 }
-.amt-row:hover .amt__short,
-.amt-row:focus-within .amt__short,
-.institution__fy-table tbody tr:hover .amt__short {
-  display: none;
-}
-.amt-row:hover .amt__full,
-.amt-row:focus-within .amt__full,
-.institution__fy-table tbody tr:hover .amt__full {
-  display: inline;
+.amt-row:hover .amt__viewport,
+.amt-row:focus-within .amt__viewport,
+.institution__fy-table tbody tr:hover .amt__viewport {
+  transform: translateY(-50%);
 }
 .institution__grid {
   display: grid;

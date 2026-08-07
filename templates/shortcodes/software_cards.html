@@ -63,12 +63,12 @@
           <p class="software-card__category">{{ category }}</p>
         </div>
       </div>
-      <div class="software-card__bar" role="img" aria-label="Used by {{ count }} of {{ total_n }} tracked NITs">
+      <div class="software-card__bar" role="img" aria-label="Used by {{ count }} of {{ total_n }} tracked NITs: {{ insts | join(sep=', ') }}" title="{{ insts | join(sep=', ') }}">
         {% for i in range(end=total_n) %}
         <span class="software-card__seg{% if i < count %} is-filled{% endif %}"></span>
         {% endfor %}
       </div>
-      <p class="software-card__count"><strong>{{ count }}</strong>/{{ total_n }} institutes use this tool</p>
+      <p class="software-card__count" title="{{ insts | join(sep=', ') }}"><strong>{{ count }}</strong>/{{ total_n }} institutes use this tool</p>
       <span class="pill software-card__type">{{ tool_type }}</span>
     </article>
   {% endfor %}

@@ -114,10 +114,7 @@
 
     <div class="institution__card institution__stats">
       <div class="institution__stat-row">
-        <span class="institution__stat-label">
-          Years with data
-          {{ ui::icon(name="info-circle") }}
-        </span>
+        <span class="institution__stat-label">Years with data</span>
         <span class="institution__stat-value">
           <span class="institution__dots" aria-hidden="true">
             {% for v in vals %}<span class="institution__dot{% if v > 0 %} is-filled{% endif %}"></span>{% endfor %}
@@ -128,18 +125,15 @@
 
       <div class="institution__stat-row">
         <span class="institution__stat-label"><span class="institution__trend institution__trend--up" aria-hidden="true"></span>Highest</span>
-        <span class="institution__stat-value"><span data-inr-short="{{ max_v }}">₹{{ max_v }}</span> <span class="institution__stat-note">({{ years[max_i] }})</span></span>
+        <span class="institution__stat-value"><span data-inr="{{ max_v }}">₹{{ max_v }}</span> <span class="institution__stat-note">({{ years[max_i] }})</span></span>
       </div>
       <div class="institution__stat-row">
         <span class="institution__stat-label"><span class="institution__trend institution__trend--down" aria-hidden="true"></span>Lowest</span>
-        <span class="institution__stat-value"><span data-inr-short="{{ min_v }}">₹{{ min_v }}</span> <span class="institution__stat-note">({{ years[min_i] }})</span></span>
+        <span class="institution__stat-value"><span data-inr="{{ min_v }}">₹{{ min_v }}</span> <span class="institution__stat-note">({{ years[min_i] }})</span></span>
       </div>
 
       <div class="institution__stat-row">
-        <span class="institution__stat-label">
-          Software dependencies
-          {{ ui::icon(name="info-circle") }}
-        </span>
+        <span class="institution__stat-label">Software dependencies</span>
         <span class="institution__stat-value">{{ sw_rows | length }}</span>
       </div>
 
@@ -162,11 +156,8 @@
 
   {% if sw_rows | length > 0 %}
   <div class="institution__card institution__software">
-    <h2 class="institution__section-label">
-      Software Dependencies
-      {{ ui::icon(name="info-circle") }}
-    </h2>
-    {{ t::render(csv="data/software.csv", schema="data/software.schema.json", headers=["software", "category", "tool_type"], records=sw_rows) }}
+    <h2 class="institution__section-label">Software Dependencies</h2>
+    {{ t::render(csv="data/software.csv", schema="data/software.schema.json", headers=["software", "category", "tool_type"], records=sw_rows, modes=false) }}
   </div>
   {% endif %}
 
@@ -177,11 +168,8 @@
     </span>
     <p>We don't have software-spend figures for {{ inst }} yet{% if response %} — its RTI response is linked below{% endif %}.</p>
     {% if sw_rows | length > 0 %}
-    <h2 class="institution__section-label">
-      Software Dependencies
-      {{ ui::icon(name="info-circle") }}
-    </h2>
-    {{ t::render(csv="data/software.csv", schema="data/software.schema.json", headers=["software", "category", "tool_type"], records=sw_rows) }}
+    <h2 class="institution__section-label">Software Dependencies</h2>
+    {{ t::render(csv="data/software.csv", schema="data/software.schema.json", headers=["software", "category", "tool_type"], records=sw_rows, modes=false) }}
     {% endif %}
   </div>
   {% endif %}

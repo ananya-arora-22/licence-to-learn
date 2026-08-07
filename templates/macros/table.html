@@ -12,7 +12,7 @@
    (e.g. one institute's software rows) rendered instead of the full `csv` —
    lets callers reuse this exact table (styling, sort, search) over a subset
    without a second CSV on disk. #}
-{% macro render(csv, schema, caption="", enhance=true, headers="", records="") %}
+{% macro render(csv, schema, caption="", enhance=true, headers="", records="", modes=true) %}
 {% if records == "" %}
   {% set data = load_data(path=csv) %}
   {% set headers = data.headers %}
@@ -20,7 +20,7 @@
 {% endif %}
 {% set sch = load_data(path=schema) %}
 {% set props = sch.properties %}
-<figure class="table-fig">
+<figure class="table-fig"{% if not modes %} data-no-modes{% endif %}>
   {% if caption %}<figcaption>{{ caption }}</figcaption>{% endif %}
   <div class="table-wrap">
     <table class="dtable"{% if enhance %} data-enhance{% endif %}>

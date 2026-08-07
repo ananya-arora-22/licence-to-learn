@@ -112,8 +112,43 @@
     box.append(svg, tip);
   };
 
-  // Compact 5-bar sparkline (institute cards): bars + a callout on the latest
-  // reported year. Shares the values/labels contract with the full chart above.
+  // Shared bar-fill defs (solid accent gradient for reported years, a hatch
+  // pattern standing in for zero/unreported ones instead of a misleadingly
+  // flat solid bar) plus a hover/focus tooltip wired identically for every
+  // bar — no permanent callout, so it doesn't crowd small charts and keeps
+  // one interaction pattern across the mini and full-size charts.
+  const barDefs = (svg, uid) => {
+    const defs = el("defs", {});
+    const grad = el("linearGradient", { id: uid, x1: 0, y1: 0, x2: 0, y2: 1 });
+    grad.append(el("stop", { offset: "0%", "stop-color": "var(--accent)", "stop-opacity": "1" }));
+    grad.append(el("stop", { offset: "100%", "stop-color": "var(--accent)", "stop-opacity": "0.2" }));
+    defs.append(grad);
+    const hatchId = `${uid}h`;
+    const hatch = el("pattern", { id: hatchId, patternUnits: "userSpaceOnUse", width: "5", height: "5", patternTransform: "rotate(45)" });
+    hatch.append(el("line", { x1: "0", y1: "0", x2: "0", y2: "5", stroke: "var(--body)", "stroke-width": "2", opacity: "0.5" }));
+    defs.append(hatch);
+    svg.append(defs);
+    return { fillId: `url(#${uid})`, hatchId: `url(#${hatchId})` };
+  };
+
+  const wireBarTip = (box, tipClass) => {
+    const tip = document.createElement("div");
+    tip.className = tipClass;
+    tip.hidden = true;
+    box.append(tip);
+    return {
+      show(label, xPct, yPct) {
+        tip.textContent = label;
+        tip.hidden = false;
+        tip.style.insetInlineStart = `${xPct}%`;
+        tip.style.insetBlockStart = `${yPct}%`;
+      },
+      hide() { tip.hidden = true; },
+    };
+  };
+
+  // Compact 5-bar sparkline (institute cards). Shares the values/labels
+  // contract with the full chart above.
   const drawMini = (box) => {
     const values = (box.dataset.values || "").split(",").map(num);
     const labels = (box.dataset.labels || "").split(",");
@@ -126,69 +161,56 @@
 
     const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "linechart__mini-svg", role: "img" });
     svg.setAttribute("aria-label", box.getAttribute("aria-label") || "spending by year");
-
-    // Callout goes on the latest year that actually has data.
-    let idx = -1;
-    values.forEach((v, i) => { if (v > 0) idx = i; });
-
-    values.forEach((v, i) => {
-      const h = Math.max(4, (v / max) * (H - 4));
-      const x = i * (barW + gap);
-      const y = H - h;
-      svg.append(el("rect", {
-        x: x.toFixed(1), y: y.toFixed(1), width: barW.toFixed(1), height: h.toFixed(1),
-        rx: "2", class: i === idx ? "lcm-bar is-active" : "lcm-bar",
-      }));
-    });
+    const { fillId, hatchId } = barDefs(svg, `lcm${n}_${Math.round(max)}`);
 
     box.textContent = "";
     box.append(svg);
+    const tip = wireBarTip(box, "linechart__callout");
 
-    if (idx >= 0) {
-      const callout = document.createElement("div");
-      callout.className = "linechart__callout";
-      const yr = labels[idx] || "";
-      const m = yr.match(/-(\d{2})$/);
-      const shortYr = m ? `FY${m[1]}` : yr;
-      const short = shortINR(values[idx]);
-      callout.innerHTML = `<b>${short || fmtFull.format(values[idx])}</b><span>(${shortYr})</span>`;
-      box.append(callout);
-    }
+    values.forEach((v, i) => {
+      const h = Math.max(4, (v / max) * (H - 4));
+      const bx = i * (barW + gap);
+      const y = H - h;
+      const bar = el("rect", {
+        x: bx.toFixed(1), y: y.toFixed(1), width: barW.toFixed(1), height: h.toFixed(1),
+        rx: "2", fill: v > 0 ? fillId : hatchId, class: "lcm-bar", tabindex: "0", role: "img",
+      });
+      const ariaLabel = `${labels[i] ? labels[i] + ": " : ""}${valLabel(v)}`;
+      bar.setAttribute("aria-label", ariaLabel);
+      svg.append(bar);
+
+      const tipLabel = `${valLabel(v)}${labels[i] ? ` (${labels[i]})` : ""}`;
+      const showTip = () => tip.show(tipLabel, ((bx + barW / 2) / W) * 100, 0);
+      bar.addEventListener("pointerenter", showTip);
+      bar.addEventListener("focus", showTip);
+      bar.addEventListener("pointerleave", tip.hide);
+      bar.addEventListener("blur", tip.hide);
+    });
   };
 
   // Full-size bar chart (institution page): gradient bars, gridlines shared
-  // with draw() above, a hatch pattern standing in for zero/unreported
-  // years (rather than a misleadingly-flat solid bar), and a callout on the
-  // highest-value bar.
+  // with draw() above. The viewBox is sized to the container's own rendered
+  // pixels (not a fixed 320x190) so it can stretch to match a taller sibling
+  // card (see .institution__grid) without distorting text — a fixed
+  // viewBox stretched via preserveAspectRatio="none" warps the glyphs.
   const drawBar = (box) => {
     const values = (box.dataset.values || "").split(",").map(num);
     const labels = (box.dataset.labels || "").split(",");
     if (!values.length) return;
 
-    const W = 320, H = 190, padL = 30, padR = 4, padT = 20, padB = 22, gap = 7;
+    const rect = box.getBoundingClientRect();
+    const W = Math.max(200, Math.round(rect.width) || 320);
+    const H = Math.max(140, Math.round(rect.height) || 190);
+    const padL = 30, padR = 4, padT = 20, padB = 22, gap = 7;
     const max = Math.max(...values, 1);
     const n = values.length;
     const barW = (W - padL - padR - gap * (n - 1)) / n;
     const x = (i) => padL + i * (barW + gap);
     const barH = (v) => Math.max(2, (v / max) * (H - padT - padB));
 
-    const uid = `bc${n}_${Math.round(max)}`;
-    // preserveAspectRatio="none": the CSS lets this stretch to match the
-    // stats card's height on desktop (see .institution__grid), rather than
-    // fixed at 320:190 and letterboxed inside a taller box.
-    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", class: "barchart__svg", role: "img" });
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "barchart__svg", role: "img" });
     svg.setAttribute("aria-label", box.getAttribute("aria-label") || "spending by year");
-
-    const defs = el("defs", {});
-    const grad = el("linearGradient", { id: uid, x1: 0, y1: 0, x2: 0, y2: 1 });
-    grad.append(el("stop", { offset: "0%", "stop-color": "var(--accent)", "stop-opacity": "1" }));
-    grad.append(el("stop", { offset: "100%", "stop-color": "var(--accent)", "stop-opacity": "0.2" }));
-    defs.append(grad);
-    const hatchId = `${uid}h`;
-    const hatch = el("pattern", { id: hatchId, patternUnits: "userSpaceOnUse", width: "5", height: "5", patternTransform: "rotate(45)" });
-    hatch.append(el("line", { x1: "0", y1: "0", x2: "0", y2: "5", stroke: "var(--body)", "stroke-width": "2", opacity: "0.5" }));
-    defs.append(hatch);
-    svg.append(defs);
+    const { fillId, hatchId } = barDefs(svg, `bc${n}_${Math.round(max)}`);
 
     ticks(0, max, 4).forEach((v) => {
       const yy = padT + (1 - v / max) * (H - padT - padB);
@@ -200,32 +222,30 @@
       svg.append(el("text", { x: (x(i) + barW / 2).toFixed(1), y: H - padB + 14, class: "lc-xlabel", "text-anchor": "middle" }, lab));
     });
 
-    let maxI = 0;
-    values.forEach((v, i) => { if (v > values[maxI]) maxI = i; });
+    box.textContent = "";
+    box.append(svg);
+    const tip = wireBarTip(box, "barchart__callout");
 
     values.forEach((v, i) => {
       const h = barH(v);
+      const barY = H - padB - h;
       const bar = el("rect", {
-        x: x(i).toFixed(1), y: (H - padB - h).toFixed(1), width: barW.toFixed(1), height: h.toFixed(1),
-        rx: "4", fill: v > 0 ? `url(#${uid})` : `url(#${hatchId})`, class: "barchart__bar",
+        x: x(i).toFixed(1), y: barY.toFixed(1), width: barW.toFixed(1), height: h.toFixed(1),
+        rx: "4", fill: v > 0 ? fillId : hatchId, class: "barchart__bar",
       });
-      const label = `${labels[i] ? labels[i] + ": " : ""}${valLabel(v)}`;
-      bar.setAttribute("aria-label", label);
+      const ariaLabel = `${labels[i] ? labels[i] + ": " : ""}${valLabel(v)}`;
+      bar.setAttribute("aria-label", ariaLabel);
       bar.setAttribute("tabindex", "0");
       bar.setAttribute("role", "img");
       svg.append(bar);
+
+      const tipLabel = `${valLabel(v)}${labels[i] ? ` (${labels[i]})` : ""}`;
+      const showTip = () => tip.show(tipLabel, ((x(i) + barW / 2) / W) * 100, (barY / H) * 100);
+      bar.addEventListener("pointerenter", showTip);
+      bar.addEventListener("focus", showTip);
+      bar.addEventListener("pointerleave", tip.hide);
+      bar.addEventListener("blur", tip.hide);
     });
-
-    box.textContent = "";
-    box.append(svg);
-
-    if (values[maxI] > 0) {
-      const callout = document.createElement("div");
-      callout.className = "barchart__callout";
-      callout.style.insetInlineStart = `${((x(maxI) + barW / 2) / W) * 100}%`;
-      callout.innerHTML = `<b>${words(values[maxI])}</b><span>(${labels[maxI] || ""})</span>`;
-      box.append(callout);
-    }
   };
 
   // Each card scales to its own max, like a normal standalone chart.
@@ -235,20 +255,14 @@
   });
   document.querySelectorAll(".barchart").forEach(drawBar);
 
-  // Format any [data-inr] element as Indian-grouped rupees (card totals).
+  // [data-inr]: compact form by default (e.g. "₹1.9 Cr"); the exact
+  // Indian-grouped figure sits in the native `title` tooltip, revealed on
+  // hover/focus, rather than always showing both at once.
   document.querySelectorAll("[data-inr]").forEach((n) => {
     const v = Number(n.dataset.inr);
     if (!Number.isFinite(v)) return;
     const s = shortINR(v);
-    n.textContent = s ? `${fmtFull.format(v)} (${s})` : fmtFull.format(v);
-  });
-
-  // [data-inr-short]: compact form only (e.g. "₹1.9 Cr") — for inline stat
-  // rows (institution page Highest/Lowest) where the full digit count wraps.
-  document.querySelectorAll("[data-inr-short]").forEach((n) => {
-    const v = Number(n.dataset.inrShort);
-    if (!Number.isFinite(v)) return;
-    const s = shortINR(v);
     n.textContent = s ? `₹${s}` : fmtFull.format(v);
+    if (s) n.title = fmtFull.format(v);
   });
 })();

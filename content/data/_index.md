@@ -19,10 +19,4 @@ Yearly software expenditure reported by each responding institute. Hover or focu
 
 {{ software_cards(csv="data/software.csv") }}
 
-## Software dependencies mapped
-
-{{ data_table(csv="data/software.csv", schema="data/software.schema.json", caption="Stack as reported by NITs. Coming up next: IIMs, IIITs and AIIMS.") }}
-
-## Total costs
-
-{{ data_table(csv="data/costs.csv", schema="data/costs.schema.json", caption="Reported annual software expenditure per institution.") }}
+Want the raw rows instead of cards? [See the full data tables →](/data/tables/)

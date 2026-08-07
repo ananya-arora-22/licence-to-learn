@@ -1328,35 +1328,33 @@ main {
   overflow: visible;
 }
 .lcm-bar {
-  fill: var(--border);
+  cursor: pointer;
+  transition: opacity 0.12s;
 
-  &.is-active {
-    fill: var(--accent);
+  &:hover,
+  &:focus-visible {
+    opacity: 0.85;
+    outline: none;
   }
 }
+/* Shared hover/focus tooltip for both the mini sparkline and the full bar
+   chart — shown only while a bar is active, positioned above it via
+   inline insetInlineStart/insetBlockStart (JS), centered with translate. */
 .linechart__callout {
   position: absolute;
-  inset-block-start: -0.4rem;
-  inset-inline-end: 0;
-  max-inline-size: 100%;
-  padding: 0.3rem 0.4rem;
-  border-radius: 4px 4px 4px 0;
-  background: var(--bg);
+  inset-block-start: 0;
+  translate: -50% -100%;
+  max-inline-size: max-content;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px 8px 8px 0;
+  background: #181615;
   color: var(--heading);
   font-family: var(--font-sans);
+  font-weight: 600;
   font-size: 0.7rem;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   pointer-events: none;
-
-  & b {
-    font-weight: 600;
-  }
-  & span {
-    margin-inline-start: 0.2em;
-    color: var(--body);
-  }
+  z-index: 2;
 }
 
 /* ==========================================================================
@@ -1669,10 +1667,10 @@ main {
   margin-inline-end: 0.3rem;
   border-inline: 5px solid transparent;
 
-  &--up {
+  &.institution__trend--up {
     border-block-end: 7px solid var(--ok);
   }
-  &--down {
+  &.institution__trend--down {
     border-block-start: 7px solid var(--bad);
   }
 }
@@ -1809,12 +1807,9 @@ main {
 }
 .barchart__callout {
   position: absolute;
-  inset-block-start: -0.5rem;
-  translate: -50% 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.05rem;
+  inset-block-start: 0;
+  translate: -50% calc(-100% - 0.5rem);
+  max-inline-size: max-content;
   padding: 0.3rem 0.5rem;
   border-radius: 8px 8px 8px 0;
   background: #181615;
@@ -1824,12 +1819,7 @@ main {
   font-size: 0.75rem;
   white-space: nowrap;
   pointer-events: none;
-
-  & span {
-    color: var(--body);
-    font-size: 0.65rem;
-    font-weight: 400;
-  }
+  z-index: 2;
 }
 
 @media (width <= 40rem) {

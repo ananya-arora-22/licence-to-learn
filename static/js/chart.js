@@ -168,7 +168,9 @@
     const tip = wireBarTip(box, "linechart__callout");
 
     values.forEach((v, i) => {
-      const h = Math.max(4, (v / max) * (H - 4));
+      // No-data years hatch the full column height, not a sliver, so "no
+      // data" reads as a deliberate state rather than a rounding error.
+      const h = v > 0 ? Math.max(4, (v / max) * (H - 4)) : H - 4;
       const bx = i * (barW + gap);
       const y = H - h;
       const bar = el("rect", {
@@ -206,7 +208,9 @@
     const n = values.length;
     const barW = (W - padL - padR - gap * (n - 1)) / n;
     const x = (i) => padL + i * (barW + gap);
-    const barH = (v) => Math.max(2, (v / max) * (H - padT - padB));
+    // No-data years hatch the full plot height, not a sliver, so "no data"
+    // reads as a deliberate state rather than a rounding error.
+    const barH = (v) => (v > 0 ? Math.max(2, (v / max) * (H - padT - padB)) : H - padT - padB);
 
     const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "barchart__svg", role: "img" });
     svg.setAttribute("aria-label", box.getAttribute("aria-label") || "spending by year");

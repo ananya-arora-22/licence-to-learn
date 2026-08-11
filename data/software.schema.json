@@ -12,7 +12,8 @@
         "label": "Software",
         "type": "tag",
         "class": "tag--soft",
-        "sort": "text"
+        "sort": "text",
+        "swatch_from": "category"
       }
     },
     "institutions": {

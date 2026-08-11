@@ -1,0 +1,72 @@
+{# One card per software product in software.csv. The adoption bar renders one
+   segment per NIT tracked in tracker.csv (the same universe "Total
+   expenditure as reported by NITs" uses elsewhere on this page), filled for
+   the ones using this tool. Segment identity isn't tracked, just the count.
+   Bar is a fixed-2-row CSS grid with column-major auto-flow, so segment 0 is
+   top-left, 1 is bottom-left, 2 is top of the next column, and so on —
+   adjacent segments alternate rows reading left to right.
+
+   data-type on each card is the comma-joined set of institute types (from
+   tracker.csv) among the institutions using it — usually just one type today
+   since all current data is NIT-only, but written to hold more once IIM/etc
+   software data exists. The heading swaps per active filter tab the same way
+   spend_counter.html does; the adoption denominator (total_n) stays scoped to
+   NITs for now since that's the only type with any software data — revisit
+   once a second type has real rows, so "X/N" doesn't silently mean the wrong N.
+   {{ software_cards(csv="data/software.csv") }} #}
+{% import "macros/ui.html" as ui %}
+{% set sw = load_data(path=csv) %}
+{% set tracker = load_data(path="data/tracker.csv") %}
+
+{% set_global total_n = 0 %}
+{% for tr in tracker.records %}
+  {% if tr[0] == "NIT" %}{% set_global total_n = total_n + 1 %}{% endif %}
+{% endfor %}
+{# The bar's segment count is cosmetic and rounds up to the nearest even
+   number (25 institutes -> 26 segments) so it splits evenly; the "X/N" caption
+   below still reports the real total_n, unrounded. #}
+{% set_global seg_total = total_n %}
+{% if total_n % 2 == 1 %}{% set_global seg_total = total_n + 1 %}{% endif %}
+
+{{ ui::type_heading(before="Software usage reported by") }}
+
+<div class="card-section">
+<div class="card-grid software-cards" id="software-cards" data-card-grid data-limit="3" data-search-placeholder="Search softwares">
+  {% for s in sw.records %}
+    {% set name = s[0] %}
+    {% set insts = s[1] | split(pat=", ") %}
+    {% set count = insts | length %}
+    {% set category = s[2] %}
+    {% set tool_type = s[3] %}
+    {% set swatch = tool_type | lower | replace(from=" ", to="-") %}
+    {% set initial = name | truncate(length=1, end="") | upper %}
+
+    {% set_global raw_types = [] %}
+    {% for inst_name in insts %}
+      {% for tr in tracker.records %}
+        {% if tr[1] == inst_name %}{% set_global raw_types = raw_types | concat(with=tr[0]) %}{% endif %}
+      {% endfor %}
+    {% endfor %}
+    {% set card_type = raw_types | unique | join(sep=",") %}
+
+    <article class="software-card" data-sort-value="{{ count }}" data-type="{{ card_type }}">
+      <div class="software-card__head">
+        <span class="software-card__icon swatch--{{ swatch }}" aria-hidden="true">{{ initial }}</span>
+        <div class="software-card__meta">
+          <h3 class="software-card__name">{{ name }}</h3>
+          <p class="software-card__category">{{ category }}</p>
+        </div>
+      </div>
+      <div class="software-card__bar" role="img" aria-label="Used by {{ count }} of {{ total_n }} tracked NITs: {{ insts | join(sep=', ') }}" title="{{ insts | join(sep=', ') }}">
+        {% for i in range(end=seg_total) %}
+        <span class="software-card__seg{% if i < count %} is-filled{% endif %}"></span>
+        {% endfor %}
+      </div>
+      {# tool_type is title-cased in the CSV ("Academic Tool"); lowercase the
+         noun so it reads as prose mid-sentence. #}
+      <p class="software-card__count" title="{{ insts | join(sep=', ') }}"><strong>{{ count }}</strong>/{{ total_n }} institutes use this {{ tool_type | replace(from=" Tool", to=" tool") }}</p>
+    </article>
+  {% endfor %}
+</div>
+<p class="empty-note" data-empty-note hidden>No software data yet for this institute type — coming soon.</p>
+</div>

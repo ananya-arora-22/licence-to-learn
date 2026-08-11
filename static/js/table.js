@@ -39,6 +39,25 @@
       td.textContent = s ? `${inr.format(n)} (${s})` : inr.format(n);
     });
 
+    // 1b. Swatch tags (table macro's swatch_from): colour keyed off the
+    // adjacent column's value (e.g. software's tag by that row's category),
+    // not by table row order — a filter/sort mustn't shuffle which colour
+    // means what. Hues step by the golden angle across this table's actual
+    // distinct values (sorted, so the assignment doesn't depend on row
+    // order) rather than hashing each string on its own — a handful of
+    // categories hashed independently readily land within a few degrees of
+    // each other and read as the same colour; stepping by the golden angle
+    // is the standard way to spread N points around a hue circle so no two
+    // are ever close, however many there are.
+    const swatchEls = [...table.querySelectorAll("[data-swatch-key]")];
+    const swatchKeys = [...new Set(swatchEls.map((el) => el.dataset.swatchKey).filter(Boolean))].sort();
+    swatchEls.forEach((el) => {
+      const i = swatchKeys.indexOf(el.dataset.swatchKey);
+      if (i < 0) return;
+      const hue = ((i * 137.508) % 360).toFixed(1);
+      el.style.setProperty("--swatch", `oklch(70% 0.11 ${hue})`);
+    });
+
     // 2. Toolbar — row 1: search + count (+ width modes); row 2: filters
     const tools = document.createElement("div");
     tools.className = "table-tools";
@@ -135,7 +154,10 @@
     if (filters.length) tools.append(filtersRow);
 
     // Width modes (Page / Fit / Full). Mobile starts in Fit; control hidden by CSS.
-    if (fig) {
+    // Opt-out (data-no-modes, from the `t::render(modes=false)` macro param):
+    // small tables nested in their own card (e.g. the institution page) skip
+    // this — "Full" breaks out to 100vw, which escapes the card entirely.
+    if (fig && !fig.hasAttribute("data-no-modes")) {
       const ICON = {
         page: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="5" width="10" height="14" rx="1"/></svg>',
         fit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 6 5 6 5 18 10 18M14 6 19 6 19 18 14 18"/></svg>',

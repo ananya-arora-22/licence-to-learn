@@ -6,18 +6,27 @@
 {% import "macros/ui.html" as ui %}
 
 {# Every column in the CSV must have a matching property with `x-display`
-   in the schema (qsv's additionalProperties:false keeps them in sync). #}
-{% macro render(csv, schema, caption="", enhance=true) %}
-{% set data = load_data(path=csv) %}
+   in the schema (qsv's additionalProperties:false keeps them in sync).
+
+   `data`, when passed, is a pre-loaded/pre-filtered {headers, records} object
+   (e.g. one institute's software rows) rendered instead of the full `csv` —
+   lets callers reuse this exact table (styling, sort, search) over a subset
+   without a second CSV on disk. #}
+{% macro render(csv, schema, caption="", enhance=true, headers="", records="", modes=true) %}
+{% if records == "" %}
+  {% set data = load_data(path=csv) %}
+  {% set headers = data.headers %}
+  {% set records = data.records %}
+{% endif %}
 {% set sch = load_data(path=schema) %}
 {% set props = sch.properties %}
-<figure class="table-fig">
+<figure class="table-fig"{% if not modes %} data-no-modes{% endif %}>
   {% if caption %}<figcaption>{{ caption }}</figcaption>{% endif %}
   <div class="table-wrap">
     <table class="dtable"{% if enhance %} data-enhance{% endif %}>
       <thead>
         <tr>
-          {% for h in data.headers %}
+          {% for h in headers %}
             {% set d = props[h]["x-display"] %}
             <th scope="col" data-col="{{ h }}" data-sort="{{ d.sort | default(value='text') }}"{% if d.filter %} data-filter="{{ d.filter }}"{% endif %}>
               <span class="th-label">{{ d.label | default(value=h) }}</span>
@@ -26,24 +35,33 @@
         </tr>
       </thead>
       <tbody>
-        {% for row in data.records %}
+        {% for row in records %}
         <tr>
           {% for cell in row %}
-            {% set d = props[data.headers[loop.index0]]["x-display"] %}
+            {% set d = props[headers[loop.index0]]["x-display"] %}
             {% set type = d.type | default(value="text") %}
             {% if type == "rating" %}
-              {% set r = cell | upper %}
-              {% set label = cell %}
-              {% if r == "A" %}{% set label = "Helpful" %}
-              {% elif r == "B" %}{% set label = "Partially helpful" %}
-              {% elif r == "C" %}{% set label = "Not helpful" %}
-              {% endif %}
-              <td class="col--rating" data-val="{{ cell }}" title="{{ label }}">
-                <span class="pill pill--status rating--{{ r | lower }}">{{ label }}</span>
+              <td class="col--rating" data-val="{{ cell }}">
+                {{ ui::rating_pill(category=cell) }}
               </td>
             {% elif type == "tag" %}
-              <td class="col--tag" data-val="{{ cell }}" title="{{ cell }}">
-                <span class="pill {{ d.class | default(value='') }}">{{ cell }}</span>
+              {# swatch_from names ANOTHER column in this same row (e.g.
+                 software's tag colours itself by that row's category) — found
+                 by name, not a hardcoded index, so this stays correct
+                 whatever order the CSV's columns are in. Colour itself comes
+                 from table.js, keyed off data-swatch-key: a small hash so
+                 every distinct value gets a stable, distinct hue without
+                 hand-maintaining a colour per value here. #}
+              {% set_global swatch_val = "" %}
+              {% if d.swatch_from %}
+                {% for h in headers %}
+                  {% if h == d.swatch_from %}{% set_global swatch_val = row[loop.index0] %}{% endif %}
+                {% endfor %}
+              {% endif %}
+              <td class="col--tag{% if d.swatch_from %} col--tag-swatch{% endif %}" data-val="{{ cell }}" title="{{ cell }}">
+                <span class="pill {{ d.class | default(value='') }}"{% if d.swatch_from %} data-swatch-key="{{ swatch_val }}"{% endif %}>
+                  {% if d.swatch_from %}<span class="tag-swatch" aria-hidden="true"></span>{% endif %}{{ cell }}
+                </span>
               </td>
             {% elif type == "status" %}
               <td class="col--status" data-val="{{ cell }}">

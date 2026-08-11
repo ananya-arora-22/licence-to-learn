@@ -12,14 +12,19 @@
   --surface: oklch(26.5% 0.011 91.7); /* #27251f cards, active nav */
   --band: oklch(26% 0.011 91.7); /* #26241e footer, art slots */
   --border: oklch(31.8% 0.008 43.2); /* #36312f */
+  /* Unfilled state of a control or bar: inactive filter tabs, chart column
+     tracks. Same lightness as --border but warmer. */
+  --track: oklch(31.2% 0.016 96.5); /* #333128 */
   --btn: oklch(96.5% 0.081 100.9); /* #fff6b7 primary fill */
   --accent: oklch(96.5% 0.08 101.7); /* #fef6b7 nav, headings */
   --heading: oklch(95.5% 0 90); /* #f0f0f0 */
   --body: oklch(74.8% 0 90); /* #adadad */
 
-  --ok: oklch(80.6% 0.136 149.5);
-  --warn: oklch(79% 0.139 85.2);
-  --bad: oklch(68.6% 0.145 14.2);
+  /* Rating icons/pills (Figma spec) — exact hex, not converted to oklch, so
+     they render pixel-identical to the source file. */
+  --ok: #8ee78a; /* green tick — Helpful */
+  --warn: #e3c96c; /* yellow tick — Partially helpful */
+  --bad: #fd7f7f; /* red tick — Not helpful */
   --info: oklch(78.6% 0.115 246.7);
 
   --font-display: "Arvo", Georgia, "Times New Roman", serif;
@@ -108,6 +113,20 @@ main {
   &:focus {
     inset-block-start: 0.5rem;
   }
+}
+
+/* Kept in the accessibility tree and read by screen readers, out of the layout
+   for everyone else. */
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .wrap {
@@ -547,6 +566,18 @@ main {
   }
 }
 
+/* Data landing page: its section headings are bold sans statements, not the
+   accent-coloured Arvo headings the rest of the prose uses. Scoped to the
+   two section headings only, so card titles (.counter-block) keep their own. */
+.page--data .prose > h2,
+.page--data .prose > .type-heading-set h2 {
+  margin-block: clamp(2.5rem, 1.8rem + 2.4vw, 4rem) 1.5rem;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: clamp(1.1rem, 1rem + 0.5vw, 1.35rem);
+  color: var(--heading);
+}
+
 /* ==========================================================================
    Data tables
    ========================================================================== */
@@ -721,6 +752,35 @@ main {
     overflow: visible;
     white-space: normal;
   }
+  /* Swatch tags (software's name + colour keyed to its category) read as a
+     short label list, not a data grid cell — full name always visible and
+     wrapping onto a second line, not clipped to one line until hover like a
+     plain tag. */
+  & td.col--tag-swatch {
+    overflow: visible;
+    white-space: normal;
+  }
+  & td.col--tag-swatch .pill {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    max-inline-size: none;
+    overflow: visible;
+    white-space: normal;
+    vertical-align: top;
+    /* Override .pill's rounded-999px/padded/filled chrome: fine for a
+       single-line badge, but border-radius:999px on a box that wraps to
+       several lines (long software names on a narrow column) rounds against
+       the box's grown height, not its width — it was rendering as a large
+       dark blob behind the text rather than a pill. This is meant to read as
+       a plain label with a colour swatch, not a button-like tag anyway. */
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font-size: inherit;
+    font-weight: 500;
+  }
   & thead th {
     position: relative;
     padding-inline-end: 2rem; /* room for sort arrow */
@@ -834,6 +894,18 @@ main {
 .rating--c {
   color: var(--bad);
 }
+.pill--type {
+  border: 1px solid var(--body);
+  background: transparent;
+  color: var(--body);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
 .col--link a {
   display: inline-flex;
   color: var(--accent);
@@ -851,22 +923,42 @@ main {
 }
 
 /* ==========================================================================
-   Total spend (static)
+   Total spend (static) — a surface card holding a plain label + the figure.
    ========================================================================== */
+.counter-block {
+  padding: clamp(0.8rem, 0.6rem + 0.8vw, 1.15rem) clamp(0.9rem, 0.6rem + 1.2vw, 1.35rem);
+  border-radius: 12px;
+  background: var(--surface);
+}
+/* Compound (0,2,0) on purpose: .prose h2 is (0,1,1) and was winning the accent
+   colour, the --fs-h2 size and its 2rem bottom margin. */
+.counter-block > .counter-block__title {
+  margin-block: 0;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1.0625rem);
+  line-height: 1.35;
+  color: #fff;
+  letter-spacing: var(--tracking);
+  text-wrap: pretty;
+}
 .counter {
   position: relative;
+  margin-block-start: 0.5rem;
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.1em;
-  font-family: var(--font-display);
+  align-items: baseline;
+  gap: 0.22em;
+  font-family: var(--font-sans);
   font-weight: 700;
-  font-size: clamp(2rem, 1.2rem + 5vw, 4.5rem);
-  line-height: 1;
+  font-size: clamp(2rem, 1.25rem + 3.6vw, 3rem);
+  line-height: 1.1;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 .counter__cur {
+  /* em, not a fixed size, so the glyph tracks the figure's fluid clamp() */
+  font-size: 0.82em;
   opacity: 0.85;
 }
 .counter__short {
@@ -987,97 +1079,461 @@ main {
 }
 
 /* ==========================================================================
+   Institute-type filter tabs
+   ========================================================================== */
+.filter-tabs-sticky {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 6;
+  padding-block: 1rem;
+  background: var(--bg);
+}
+.filter-tabs {
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  /* Chips nearly fill the track; the extra inline-start inset is only there
+     because "Filter by" is bare text, not a chip. */
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+  border-radius: 8px;
+  background: var(--band);
+}
+.filter-tabs__label {
+  margin-inline-end: 0.1rem;
+  color: var(--body);
+  font-size: var(--fs-sm);
+}
+/* Equal-width tabs (min-inline-size, centred text) so the bar reads as one
+   segmented control rather than six differently-sized pills. */
+.filter-tab {
+  min-inline-size: 4rem;
+  padding: 0.4rem 0.7rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--track);
+  color: var(--body);
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: var(--tracking);
+  text-align: center;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--heading);
+  }
+  &.is-active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+}
+/* Phones: tighten the tabs just enough that "Filter by" + three of them still
+   share the first row and the bar wraps to two rows, not three. */
+@media (width < 30rem) {
+  .filter-tabs {
+    gap: 0.4rem;
+    padding: 0.25rem 0.25rem 0.25rem 0.6rem;
+  }
+  .filter-tabs__label {
+    font-size: 0.8125rem;
+  }
+  .filter-tab {
+    min-inline-size: 3.5rem;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.8125rem;
+  }
+}
+.empty-note {
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--body);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+/* ==========================================================================
+   Card-grid toolbar (search + sort), shared by institute + software cards.
+   Sticky within its own .card-section only — position:sticky's containing
+   block is that wrapper, so the bar unsticks once you scroll past its
+   section instead of staying pinned for the whole page.
+
+   Search field and sort button share one shape: near-bg fill, warm
+   accent-tinted icon + label, matching height, radius matching the filter-bar
+   track. --field-* keeps the two in sync — they sit side by side, so any drift
+   between them is visible.
+   ========================================================================== */
+.card-section {
+  position: relative;
+
+  --field-ink: color-mix(in oklch, var(--accent) 60%, var(--bg));
+  --field-line: color-mix(in oklch, var(--border) 88%, var(--accent));
+  --field-fill: color-mix(in oklch, var(--surface) 50%, var(--bg));
+  --field-pad: 0.35rem 0.6rem;
+  --field-radius: 6px;
+}
+.card-tools {
+  position: sticky;
+  inset-block-start: var(--filter-tabs-h, 4.2rem);
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 0.6rem;
+  background: var(--bg);
+}
+.card-search {
+  display: flex;
+  flex: 1 1 12rem;
+  max-inline-size: 18rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: var(--field-pad);
+  border: 1px solid var(--field-line);
+  border-radius: var(--field-radius);
+  background: var(--field-fill);
+  color: var(--field-ink);
+
+  &:focus-within {
+    border-color: var(--btn);
+  }
+  & input[type="search"] {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    /* UA gives inputs their own 1px block padding — left in, it made the
+       field 2px taller than the sort button sitting next to it. */
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--heading);
+    font: inherit;
+    font-size: 0.9375rem;
+
+    &::placeholder {
+      color: var(--field-ink);
+      opacity: 1;
+    }
+    &:focus {
+      outline: none;
+    }
+  }
+}
+/* Sort control: a details/summary disclosure, the same pattern as the header's
+   Take Action menu. Deliberately not given .menu as well — that rule rotates
+   every .icon in its summary, and only the chevron should flip here. */
+.card-sort {
+  position: relative;
+
+  & > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: var(--field-pad);
+    /* Transparent rather than none: keeps the same box as .card-search so the
+       two stay the same height. */
+    border: 1px solid transparent;
+    border-radius: var(--field-radius);
+    background: var(--field-fill);
+    color: var(--field-ink);
+    font: inherit;
+    font-size: 0.9375rem;
+    list-style: none;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+  }
+  & .card-sort__chev {
+    transition: rotate 0.15s;
+  }
+  &[open] .card-sort__chev {
+    rotate: 180deg;
+  }
+  & > summary:hover,
+  & > summary:focus-visible {
+    color: var(--accent);
+  }
+}
+/* Reuses .menu__panel's popover chrome; only the options need their own rule,
+   since that panel styles links and these are buttons. */
+.card-sort__panel {
+  inline-size: max-content;
+  min-inline-size: 100%;
+
+  & button {
+    padding: 4px 10px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--accent);
+    font: inherit;
+    font-size: var(--fs-sm);
+    text-align: start;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--surface);
+    }
+    &[aria-current="true"] {
+      background: var(--surface);
+      font-weight: 600;
+    }
+  }
+}
+.card-more {
+  display: flex;
+  margin: 1rem auto 0;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+/* ==========================================================================
    Spend-by-institute cards + line chart
    ========================================================================== */
-.spend-cards {
+.card-grid {
   margin-block: 1.5rem;
   display: grid;
   gap: var(--gutter);
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
 }
+/* One full-width row per institute — identity on the left, money panel and
+   sparkline pinned to the right — instead of a multi-column grid of tall
+   cards. Stacks into a block below 40rem (see the @media at the end). */
+.spend-cards {
+  /* minmax(0, 1fr), not a bare 1fr: a bare 1fr track's automatic minimum is
+     content-based, so a card whose fixed-width money panel + placeholder
+     can't shrink (both are flex-shrink: 0) forces the track wider than the
+     grid and the placeholder spills past the card's edge. Firefox computes
+     a larger min-content for the name/badge flex nesting above than Chrome
+     does for the same markup, so it was the one to visibly break — longer
+     institute names (NIT Agartala) crossed the threshold first. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
 .spend-card {
   position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem 1.2rem;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius, 12px);
   background: var(--surface);
-}
-.spend-card__meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.card-info {
-  inline-size: 1.1rem;
-  block-size: 1.1rem;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--accent);
-  font-family: var(--font-sans);
-  font-size: 0.65rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  display: inline-grid;
-  place-items: center;
+  /* Belt-and-braces: .spend-card__main's min-inline-size: 0 is meant to let
+     it shrink away before the fixed-width money panel/chart ever has to.
+     Firefox computes a bigger automatic minimum size than Chrome for this
+     nested flex + ellipsis shape though, so on some rows (longer institute
+     names, e.g. NIT Agartala) it refuses to shrink enough and the chart
+     placeholder spills past the card edge. Clipping here can't un-break that
+     math, but it guarantees the overflow is invisible instead of leaking into
+     the page — the status tooltip below is confirmed to sit well within
+     these bounds, so nothing else gets cut off. */
+  overflow: hidden;
 
+  &[hidden] {
+    display: none;
+  }
+}
+.spend-card__main {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.spend-card__link {
+  min-inline-size: 0;
+  color: inherit;
+  text-decoration: none;
+  /* Names top out at ~21 chars, so this is a guard, not a routine trim. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  /* Stretched-link: the whole card is clickable, but the accessible name
+     stays on this one link inside the heading. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
   &:hover,
   &:focus-visible {
-    border-color: var(--accent);
+    color: var(--accent);
   }
 }
-.spend-card__stats {
+.spend-card__eyebrow {
+  color: var(--body);
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking);
+}
+/* Compound (0,2,0): .prose h3 is (0,1,1) and would otherwise win the accent
+   colour, Arvo family and 1rem size. */
+.spend-card__main .spend-card__title {
+  margin-block: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.3;
+  color: #fff;
+}
+/* Icon-only RTI-response tickmark. Position: relative lifts it into the same
+   paint step as .spend-card__link's stretched-link ::after (both positioned,
+   z-index: auto) — since this sits later in the DOM, it paints on top and
+   stays hoverable/clickable instead of the full-card link swallowing it. */
+.spend-card__status {
+  position: relative;
+  flex-shrink: 0;
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+
+  & .icon {
+    inline-size: 100%;
+    block-size: 100%;
+    stroke-width: 2.2;
+  }
+}
+.spend-card__status-btn {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  /* Buttons don't inherit color/font from ancestors by default — without
+     this the rating--a/b/c colour on the parent never reaches the icon's
+     stroke="currentColor". */
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.spend-card__status-panel {
   position: absolute;
-  inset-block-start: 2.75rem;
-  inset-inline-end: 1rem;
+  inset-block-start: 100%;
+  inset-inline-end: 0;
   z-index: 5;
-  background: var(--bg);
+  margin-block-start: 0.5rem;
+  inline-size: max-content;
+  max-inline-size: 10rem;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 0.6rem 0.9rem;
-  min-inline-size: 15rem;
+  padding: 0.35rem 0.6rem;
+  color: var(--heading);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
   box-shadow: 0 8px 24px oklch(0% 0 0 / 0.35);
-
-  & dl {
-    margin: 0;
-    display: grid;
-    gap: 0.35rem;
-  }
-  & .stat {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    font-family: var(--font-sans);
-    font-size: 0.78rem;
-  }
-  & dt {
-    color: var(--body);
-  }
-  & dd {
-    margin: 0;
-    color: var(--heading);
-    font-variant-numeric: tabular-nums;
-    text-align: end;
-  }
+  pointer-events: none;
 }
-.spend-card__head {
+.spend-card__city {
+  color: var(--body);
+  font-size: var(--fs-sm);
+}
+.spend-card__body {
+  position: relative;
+  /* Definite basis (11rem amount/nodata + 0.6rem gap + 7.5rem chart/placeholder),
+     not auto: auto makes Firefox compute this nested flex container's own
+     content size, and it lands on something far smaller than its children's
+     fixed widths actually need — the children then spill past their own
+     parent. A hard-coded basis matching the children sidesteps that
+     nested-intrinsic-sizing computation entirely instead of relying on it. */
+  flex: 0 0 19.1rem;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
+  align-items: stretch;
+  gap: 0.6rem;
 }
-.spend-card__head h3 {
-  margin-block: 0;
-  font-size: 1rem;
+/* The money panel and its no-data counterpart are the same box, so a row
+   without cost data keeps the row rhythm instead of collapsing. */
+.spend-card__amount,
+.spend-card__nodata {
+  flex: 0 0 11rem;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: var(--bg);
+}
+.spend-card__nodata {
+  font-size: var(--fs-sm);
+}
+.spend-card__label {
+  color: var(--body);
+  font-size: var(--fs-sm);
+}
+.spend-card__chart-placeholder {
+  flex: 0 0 7.5rem;
+  block-size: 4.5rem;
+  border-radius: 8px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--border) 0 6px,
+    transparent 6px 12px
+  );
+  opacity: 0.5;
 }
 .spend-card__total {
-  color: var(--accent);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+
+  /* The ₹ is baked into the Intl-formatted string by chart.js, so it can't
+     carry its own span — ::first-letter is the only handle on it. */
+  & .amt__short::first-letter,
+  & .amt__full::first-letter {
+    font-size: 0.78em;
+    letter-spacing: 0.12em;
+  }
+}
+/* Narrow screens: the row becomes a block — eyebrow, title, then the money +
+   sparkline pair. The status icon leaves the title line for the top-right
+   corner, and the city drops out (it's on the institute's own page). */
+@media (width < 40rem) {
+  .spend-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .spend-card__main {
+    padding-inline-end: 1.75rem;
+  }
+  .spend-card__status {
+    position: absolute;
+    inset-block-start: 0.85rem;
+    inset-inline-end: 1rem;
+  }
+  .spend-card__city {
+    display: none;
+  }
+  .spend-card__body {
+    flex: 1 1 auto;
+  }
+  .spend-card__amount,
+  .spend-card__nodata {
+    flex: 1 1 auto;
+  }
 }
 .linechart {
   position: relative;
@@ -1090,8 +1546,11 @@ main {
   aspect-ratio: 320 / 190;
   overflow: visible;
 }
+/* Lighter than --track on purpose: a gridline in the same tone as the bar
+   chart's column tracks disappeared everywhere except the gaps between
+   columns. This reads against both the track and the card behind it. */
 .lc-grid {
-  stroke: var(--border);
+  stroke: color-mix(in oklch, var(--track) 70%, var(--body));
   stroke-width: 1;
   stroke-dasharray: 2 3;
 }
@@ -1138,6 +1597,179 @@ main {
   font-size: 0.875rem;
   white-space: nowrap;
   pointer-events: none;
+}
+
+/* Compact 5-bar sparkline used in the redesigned institute cards, with a
+   floating callout on the latest reported year. Shares .linechart's
+   data-values/data-labels contract; static/js/chart.js picks the render mode
+   from the --mini class. */
+.linechart--mini {
+  flex: 0 0 7.5rem;
+  min-inline-size: 0;
+}
+.linechart__mini-svg {
+  inline-size: 100%;
+  block-size: 4.5rem;
+  overflow: visible;
+}
+.lcm-bar {
+  cursor: pointer;
+  transition: opacity 0.12s;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 0.85;
+    outline: none;
+  }
+}
+/* Shared hover/focus tooltip for both the mini sparkline and the full bar
+   chart — shown only while a bar is active, positioned above it via
+   inline insetInlineStart/insetBlockStart (JS), centered with translate. */
+.linechart__callout {
+  position: absolute;
+  inset-block-start: 0;
+  translate: -50% -100%;
+  max-inline-size: max-content;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px 8px 8px 0;
+  background: #181615;
+  color: var(--heading);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ==========================================================================
+   Software usage cards
+   ========================================================================== */
+/* Full-width rows, matching .spend-cards — head, adoption bar and caption
+   stack inside each row. */
+.software-cards {
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+.software-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  /* --band (#26241e), not --surface (#27251f) — Figma spec calls out this
+     card specifically; the two tokens are a hair apart so the swap is subtle. */
+  background: var(--band);
+
+  &[hidden] {
+    display: none;
+  }
+}
+.software-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.software-card__icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border-radius: 10px;
+  background: var(--border);
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  /* Initial-letter placeholder — there's no real per-software logo data
+     source (would need a logo_url column or a third-party lookup), so this
+     is an honest fallback rather than a fabricated image. */
+
+  /* Green/amber pair (Figma spec, exact hex), keyed to tool_type — not meant
+     to carry status-level meaning, so deliberately not reusing
+     --ok/--warn/--bad/--info even though the green/yellow happen to be close.
+     Keyed rather than positional so a given tool keeps one colour when the
+     grid is sorted or filtered. */
+  &.swatch--academic-tool {
+    background: #91b56d;
+  }
+  &.swatch--administrative-tool {
+    background: #e4bc39;
+  }
+}
+/* Per-row colour chip on the software data-table's swatch tag column (table
+   macro's swatch_from + table.js's hash-to-hue) — unlike the two fixed
+   academic/administrative colours above, this covers an open-ended list of
+   categories, so it can't be a fixed set of named classes. */
+.tag-swatch {
+  flex-shrink: 0;
+  margin-block-start: 0.2em;
+  inline-size: 0.7rem;
+  block-size: 0.7rem;
+  border-radius: 3px;
+  background: var(--swatch, var(--border));
+}
+.software-card__meta {
+  min-inline-size: 0;
+}
+.software-card .software-card__name {
+  margin: 0;
+  overflow: hidden;
+  color: #fafafa;
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.software-card__category {
+  margin: 0;
+  overflow: hidden;
+  /* Exact Figma hex — var(--body) is a very close but not identical grey. */
+  color: #adadad;
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.software-card__bar {
+  display: grid;
+  grid-template-rows: repeat(2, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 2px;
+  /* column-major: segment 0 top-left, 1 bottom-left, 2 top (next column), ...
+     so adjacent segments alternate rows as you read left to right. */
+}
+.software-card__seg {
+  block-size: 13px;
+  border-radius: 3px;
+  /* var(--track), not var(--border) — same #333128 as the chart column
+     tracks and inactive filter tabs; this bar is the same "unfilled" idea. */
+  background: var(--track);
+
+  &.is-filled {
+    background: var(--accent);
+  }
+}
+/* The count reads as one sentence, so the big number stays inline (baseline
+   alignment comes free) rather than becoming a flex item that could wrap
+   away from the "/N institutes…" it belongs to. */
+.software-card__count {
+  margin: 0;
+  color: var(--body);
+  font-size: 1rem;
+  line-height: 1.3;
+
+  & strong {
+    margin-inline-end: 0.06em;
+    color: #fff;
+    font-size: 1.45em;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* ==========================================================================
@@ -1215,6 +1847,484 @@ main {
 /* ==========================================================================
    Narrow screens: stack hero + reasons
    ========================================================================== */
+/* ==========================================================================
+   Institution page (/data/<institute>/)
+   ========================================================================== */
+.institution__header {
+  display: flex;
+  /* stretch, not flex-start: the id block (name/city/badges) is usually
+     taller than the total box, and flex-start left the total pinned to the
+     top — its own 16px gap above matched the card's padding, but the gap
+     below it was whatever height was left over, uneven with the rest. */
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block: 1.5rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: var(--band);
+
+  & h1 {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--heading);
+  }
+}
+.institution__id {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.institution__city {
+  margin-block-start: -0.3rem;
+  color: var(--body);
+  font-size: var(--fs-sm);
+}
+.institution__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.institution__total {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  /* Now that .institution__header stretches this box to match its taller
+     sibling, center the amount/label within that extra height instead of
+     leaving them pinned to the top of a box they no longer fill. */
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: var(--bg);
+  text-align: end;
+}
+.institution__total-amount {
+  color: var(--heading);
+  font-family: var(--font-sans);
+  font-size: 1.3rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.institution__total-label {
+  color: var(--body);
+  font-size: var(--fs-xs);
+}
+
+/* Hoverable "amount row": flat highlight fill (background transition) +
+   a one-piece slot-roll of the whole figure — short and full stacked as two
+   lines in a clipped viewport, rolling together as a single unit (not
+   digit-by-digit) from short to full and back. Two sibling spans come from
+   the [data-inr] handler in chart.js. Applied to whichever row actually
+   holds a money figure (5-year total, Highest/Lowest, spend-card totals);
+   the plain Financial-Year table rows get the same treatment on <tr>. */
+.amt {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  line-height: 1.2;
+  block-size: 1.2em;
+}
+.amt__viewport {
+  display: block;
+  transition: transform 220ms cubic-bezier(0.32, 0, 0.2, 1);
+}
+.amt__short,
+.amt__full {
+  display: block;
+  line-height: 1.2;
+}
+.amt-row,
+.institution__fy-table tbody tr {
+  transition: background-color 130ms ease;
+}
+/* .institution__total already has its own padding/background/radius as a
+   standalone box; other .amt-row hosts (bare flex rows) get a small bleed
+   so the highlight reads as a row, not just text getting a background. */
+.institution__stat-row.amt-row {
+  padding-inline: 0.5rem;
+  margin-inline: -0.5rem;
+  border-radius: 6px;
+}
+.amt-row:hover,
+.amt-row:focus-within,
+.institution__fy-table tbody tr:hover {
+  /* A translucent lightening overlay reads consistently regardless of the
+     row's own background (--bg on the total/spend-card box, --band on the
+     bare stat-row) — a fixed --surface swap was nearly invisible where the
+     two tokens are this close in lightness. */
+  background: oklch(100% 0 0 / 6%);
+}
+.amt-row:hover .amt__viewport,
+.amt-row:focus-within .amt__viewport,
+.institution__fy-table tbody tr:hover .amt__viewport {
+  transform: translateY(-50%);
+}
+.institution__grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 1.2fr);
+  gap: var(--gutter);
+  margin-block-end: 1.5rem;
+}
+.institution__card {
+  padding: 1rem;
+  border-radius: 16px;
+  background: var(--band);
+}
+.institution__card--chart {
+  display: flex;
+}
+/* The chart card's height is set explicitly from this card's own rendered
+   height in JS (see chart.js), not CSS grid stretch — align-self: start
+   opts this item out of the grid's default align-items: stretch so its
+   measured height is always its own true content height. Without this,
+   stretch pulls this card up to match whatever height chart.js had *just*
+   set on the chart card, which chart.js then reads back as "the stats
+   card's height" and re-applies — a feedback loop with no natural ceiling. */
+.institution__stats {
+  display: flex;
+  align-self: start;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+/* Label column is a fixed width (the widest of the four fixed label strings —
+   "Software dependencies" — never institute data, so one constant works for
+   every institution page), so every value starts at the same x regardless of
+   how wide its own text is.
+
+   The note ("(2020-21)") is pinned to the row's own right edge via
+   margin-inline-start: auto on .institution__stat-note, rather than just
+   trailing after the amount — Highest/Lowest's amount is an .amt (see
+   amt-row elsewhere in this file): both its short form ("₹8.07 Cr") and full
+   form ("₹8,07,00,000") sit in the DOM at once, so the box is already sized
+   to the wider *full* form even before you hover it. Letting the note trail
+   directly after that amount meant it visually shifted right by that same
+   reserved width on every Highest/Lowest row, while Years-with-data/Software-
+   dependencies (plain numbers, no hidden full form) didn't — so the notes
+   never lined up between rows. Pinning it to the row's end edge instead means
+   its position doesn't depend on the amount's width at all. */
+.institution__stat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.institution__stat-label {
+  display: inline-flex;
+  /* 11rem clears "Software dependencies", the widest of the four fixed label
+     strings (~10.5rem rendered); nowrap so it can't fall back to wrapping
+     and pull the row height and the value's vertical position off with it. */
+  flex: 0 0 11rem;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--body);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+
+  & .icon {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+}
+.institution__stat-value {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  color: var(--heading);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.institution__stat-note {
+  margin-inline-start: auto;
+  color: var(--body);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.institution__dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-inline-end: 0.3rem;
+}
+.institution__dot {
+  inline-size: 6px;
+  block-size: 14px;
+  border-radius: 2px;
+  background: var(--border);
+
+  &.is-filled {
+    background: var(--accent);
+  }
+}
+.institution__trend {
+  display: inline-block;
+  inline-size: 0;
+  block-size: 0;
+  margin-inline-end: 0.3rem;
+  border-inline: 5px solid transparent;
+
+  &.institution__trend--up {
+    border-block-end: 7px solid var(--ok);
+  }
+  &.institution__trend--down {
+    border-block-start: 7px solid var(--bad);
+  }
+}
+.institution__fy-table {
+  inline-size: 100%;
+  margin-block-start: 0.25rem;
+  border-collapse: collapse;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+
+  & th,
+  & td {
+    padding: 0.5rem;
+  }
+  & thead th {
+    color: var(--accent);
+    font-weight: 600;
+    text-align: start;
+
+    &:last-child {
+      text-align: end;
+    }
+  }
+  & tbody td {
+    color: var(--body);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+
+    &:last-child {
+      color: var(--heading);
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+      text-transform: none;
+      text-align: end;
+    }
+  }
+  & .institution__fy-total td {
+    border-block-start: 0.6px solid var(--border);
+  }
+}
+.institution__section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-block: 0 1rem;
+  /* :where(h2) sets font-family: var(--font-display) (Arvo, serif) at zero
+     specificity — harmless normally, but this label has no other font-family
+     declaration to beat it with, so it was rendering serif instead of Inter. */
+  font-family: var(--font-sans);
+  color: var(--body);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+
+  & .icon {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+}
+/* Box within a box, matching the chart + stats cards above: this card keeps
+   .institution__card's own --band background and 16px radius, and the table
+   sits inside it on a black --bg panel — the same nesting .institution__fy-table
+   already uses inside the stats card, so the two sections read alike.
+   The table itself still drops .dtable's default grid (no cell borders, no
+   separate header band) — the nesting comes from the panel, not from ruling
+   every cell. Scoped to these two cards specifically (not .dtable generally),
+   so the tracker/tables pages keep their grid.
+   .institution__empty is the no-cost-data sibling of this same section — same
+   software table, just under a "not responded" message instead of a chart, so
+   it needs the identical treatment or the two variants drift apart. */
+.institution__software,
+.institution__empty {
+  margin-block-end: 1.5rem;
+
+  & .table-wrap {
+    border: 0;
+    border-radius: 8px;
+    background: var(--bg);
+    /* Clips the rows to the panel's rounded corners. Rows still grow taller
+       on hover (cells wrap rather than spilling sideways), so nothing gets
+       cut off by this. */
+    overflow: hidden;
+  }
+  & .dtable {
+    background: transparent;
+
+    /* No cell borders anywhere — no column dividers, no row dividers either.
+       Rows are told apart by their own padding rhythm and the hover state
+       below, not a line. */
+    & th,
+    & td {
+      border: 0;
+    }
+    & thead th {
+      background: transparent;
+      /* thead th isn't in the :where(h1,h2,h3) selector that pulled Arvo
+         into the section-label above it, so this is technically redundant
+         today — explicit anyway, since matching the rest of the page's
+         Inter is the actual requirement, not "whatever happens not to
+         collide right now". */
+      font-family: var(--font-sans);
+    }
+    /* A solid --surface row still reads as its own separately-shaded box,
+       the exact look this section is trying to get away from. A translucent
+       overlay reads as "hovering", not "a different panel underneath". */
+    & tbody tr:hover {
+      background: oklch(100% 0 0 / 6%);
+    }
+    /* Category/Type: plain muted text, no pill chrome — only the Software
+       column keeps a pill (for its swatch); see td.col--tag-swatch below. */
+    & td.col--tag:not(.col--tag-swatch) .pill {
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--body);
+      font-size: inherit;
+      font-weight: 400;
+    }
+    & th .col-resize {
+      border-inline-end-color: transparent;
+    }
+    & th .col-resize:hover,
+    &.is-resizing th .col-resize:hover {
+      border-inline-end-color: var(--accent);
+    }
+    /* Sort indicator: lighter and smaller than the header label so it reads
+       as a hint, not a second bold glyph next to the heading — it was
+       inheriting thead th's font-weight: 600. */
+    & th[data-sortable]::after {
+      font-size: 0.7rem;
+      font-weight: 400;
+      opacity: 0.7;
+    }
+    & th[aria-sort="ascending"]::after,
+    & th[aria-sort="descending"]::after {
+      font-weight: 400;
+      opacity: 1;
+    }
+  }
+  /* Swatch is a rounded-square colour chip, not a circle — sized to sit
+     level with the row's own text (the Category/Type values beside it),
+     not as a standalone icon competing with them. 2.25rem read as an
+     oversized icon dropped into a plain-text row; this keeps the same
+     shape at roughly a line-of-text's scale instead. */
+  & .tag-swatch {
+    align-self: center;
+    margin-block-start: 0;
+    inline-size: 1.15rem;
+    block-size: 1.15rem;
+    border-radius: 5px;
+  }
+}
+.institution__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-block-end: 1.5rem;
+
+  & p {
+    margin: 0;
+    color: var(--body);
+  }
+}
+/* Plain row, no wrapping card — each link is its own standalone chip
+   (background, padding, radius all on .institution-action itself), not an
+   outer box within a box. */
+.institution__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block-end: 1.5rem;
+}
+.institution-action {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--band);
+  font-family: var(--font-sans);
+  text-decoration: none;
+  cursor: pointer;
+
+  & .institution-action__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent);
+    font-size: 1rem;
+    font-weight: 500;
+
+    & .icon {
+      inline-size: 18px;
+      block-size: 18px;
+    }
+  }
+  & .institution-action__note {
+    color: var(--body);
+    font-size: var(--fs-xs);
+  }
+}
+
+/* Full-size bar chart (institution page). Shares the data-values/data-labels
+   contract with .linechart; static/js/chart.js's drawBar() picks it up via
+   the .barchart class. */
+.barchart {
+  position: relative;
+  flex: 1;
+  inline-size: 100%;
+  color: var(--body);
+  font-size: var(--fs-sm);
+}
+.barchart__svg {
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+.barchart__bar {
+  cursor: pointer;
+  transition: opacity 0.12s;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 0.85;
+    outline: none;
+  }
+}
+.barchart__callout {
+  position: absolute;
+  inset-block-start: 0;
+  translate: -50% calc(-100% - 0.5rem);
+  max-inline-size: max-content;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px 8px 8px 0;
+  background: #181615;
+  color: var(--heading);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
 @media (width <= 40rem) {
   /* width toggle is meaningless on a phone; tables default to Fit (JS) */
   .table-modes {
@@ -1271,5 +2381,49 @@ main {
       inline-size: 100%;
       max-inline-size: 188px;
     }
+  }
+  .institution__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .institution__total {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    text-align: start;
+  }
+  .institution__grid {
+    grid-template-columns: 1fr;
+  }
+  /* Stacked (not side-by-side) — go back to the chart's own intrinsic
+     aspect ratio instead of stretching to match a peer that's no longer
+     in the same row. */
+  .institution__card--chart {
+    align-items: center;
+  }
+  .barchart {
+    flex: none;
+  }
+  .barchart__svg {
+    block-size: auto;
+    aspect-ratio: 320 / 190;
+  }
+  /* Software Dependencies table: on a phone, table-layout: fixed splits the
+     card's width three ways regardless of what's in each column, so
+     Category/Type truncate to "Produc…"/"Admini…" while Software wraps
+     several lines deep — cramped and, per the designer, wrong. table-layout:
+     auto instead sizes each column to what its own content needs (Type
+     naturally stays narrow; the existing nowrap/ellipsis rules per cell no
+     longer have anything to truncate against once the column isn't forced
+     narrower than its content). The table can now be wider than its card,
+     so it scrolls horizontally inside that card instead of overflowing the
+     page — nothing is shortened or hidden, the reader swipes to see the
+     rest. Desktop is unaffected; its three columns already fit without any
+     of this. */
+  .institution__software .table-wrap {
+    overflow-x: auto;
+  }
+  .institution__software .dtable {
+    table-layout: auto;
   }
 }

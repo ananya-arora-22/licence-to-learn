@@ -1,7 +1,7 @@
 /* Static "total reported spend" figure, Indian-grouped with a compact
-   short suffix. Also wires the stats popovers: one for the total
-   (.counter__info) and one per spend card (.card-info, showing yearly
-   stats + software-tools count). */
+   short suffix. Also wires the total stats popover (.counter__info) —
+   per-card yearly stats now live on each institute's own /data/<slug>/
+   page instead of a hover popover. */
 (() => {
   "use strict";
   const fmt = new Intl.NumberFormat("en-IN");
@@ -71,41 +71,19 @@
     wirePopover(c, btn, pop);
   });
 
-  // --- Per-card stats popover (yearly stats + software-tools count) ---
-  const YEARS = ["2020-21", "2021-22", "2022-23", "2023-24", "2024-25"];
-  document.querySelectorAll(".spend-card").forEach((card) => {
-    const btn = card.querySelector(".card-info");
-    const pop = card.querySelector(".spend-card__stats");
-    const lc = card.querySelector(".linechart");
-    if (!btn || !pop || !lc) return;
-    const vals = (lc.dataset.values || "").split(",").map(num);
-    if (!vals.length) return;
-    const totalEl = card.querySelector("[data-inr]");
-    const total = num(totalEl && totalEl.dataset.inr);
-    const tools = num(btn.dataset.tools);
-
-    const n = vals.length;
-    const reported = vals.filter(v => v > 0).length;
-    const mean = reported > 0 ? vals.reduce((a, b) => a + b, 0) / reported : 0;
-    const maxV = Math.max(...vals), minV = Math.min(...vals);
-    const maxYr = YEARS[vals.indexOf(maxV)] || "";
-    const minYr = YEARS[vals.indexOf(minV)] || "";
-
-    pop.innerHTML = `<dl>
-      ${row("5-year total", withShort(total))}
-      ${row("Mean per year", withShort(Math.round(mean)))}
-      ${row("Highest year", `${maxYr} (${amt(maxV)})`)}
-      ${row("Lowest year", `${minYr} (${amt(minV)})`)}
-      ${row("Years with data", `${reported} of ${n}`)}
-      ${row("Software tools listed", tools)}
-    </dl>`;
-    wirePopover(card, btn, pop);
-  });
-
   // --- Generic inline "?" info tips (info_tip shortcode) ---
   document.querySelectorAll(".info-tip").forEach((tip) => {
     const btn = tip.querySelector(".info-tip__btn");
     const pop = tip.querySelector(".info-tip__panel");
     if (btn && pop) wirePopover(tip, btn, pop);
+  });
+
+  // --- Spend-card RTI-response tickmark: hover/focus reveals Helpful /
+  // Partially helpful / Not helpful, the same wording ui::rating_pill shows
+  // as text elsewhere, instead of relying on the plain browser title tooltip.
+  document.querySelectorAll(".spend-card__status").forEach((status) => {
+    const btn = status.querySelector(".spend-card__status-btn");
+    const pop = status.querySelector(".spend-card__status-panel");
+    if (btn && pop) wirePopover(status, btn, pop);
   });
 })();

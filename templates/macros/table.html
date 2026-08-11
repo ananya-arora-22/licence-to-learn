@@ -45,8 +45,23 @@
                 {{ ui::rating_pill(category=cell) }}
               </td>
             {% elif type == "tag" %}
-              <td class="col--tag" data-val="{{ cell }}" title="{{ cell }}">
-                <span class="pill {{ d.class | default(value='') }}">{{ cell }}</span>
+              {# swatch_from names ANOTHER column in this same row (e.g.
+                 software's tag colours itself by that row's category) — found
+                 by name, not a hardcoded index, so this stays correct
+                 whatever order the CSV's columns are in. Colour itself comes
+                 from table.js, keyed off data-swatch-key: a small hash so
+                 every distinct value gets a stable, distinct hue without
+                 hand-maintaining a colour per value here. #}
+              {% set_global swatch_val = "" %}
+              {% if d.swatch_from %}
+                {% for h in headers %}
+                  {% if h == d.swatch_from %}{% set_global swatch_val = row[loop.index0] %}{% endif %}
+                {% endfor %}
+              {% endif %}
+              <td class="col--tag{% if d.swatch_from %} col--tag-swatch{% endif %}" data-val="{{ cell }}" title="{{ cell }}">
+                <span class="pill {{ d.class | default(value='') }}"{% if d.swatch_from %} data-swatch-key="{{ swatch_val }}"{% endif %}>
+                  {% if d.swatch_from %}<span class="tag-swatch" aria-hidden="true"></span>{% endif %}{{ cell }}
+                </span>
               </td>
             {% elif type == "status" %}
               <td class="col--status" data-val="{{ cell }}">

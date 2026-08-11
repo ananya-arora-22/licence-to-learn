@@ -2,12 +2,14 @@
 {% import "macros/ui.html" as ui %}
 
 {% block breadcrumb %}
-{{ ui::breadcrumb(current=section.title) }}
+{{ ui::breadcrumb(current="Data") }}
 {% endblock %}
 
 {% block content %}
-<section class="wrap page">
-  <h1>{{ section.title }}</h1>
+{# The h1 is off-screen, not deleted: the redesign leads with the filter bar
+   and the total-spend card, but the page still needs a top-level heading. #}
+<section class="wrap page page--data">
+  <h1 class="visually-hidden">{{ section.title }}</h1>
   <div class="prose">{{ section.content | safe }}</div>
 </section>
 {% endblock %}

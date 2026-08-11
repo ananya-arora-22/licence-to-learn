@@ -1,17 +1,16 @@
 {# Total reported spend, one variant per institute type (NIT/IIIT/IIM/AIIMS/
    Other/All), toggled by the filter tabs via [data-type-swap] (see
    static/js/cards.js) so the heading and figure always match the active tab
-   instead of being hardcoded to NITs. Each variant's totals/names are scoped
-   to that type only, so the "i" stats popover stays correct per type too.
+   instead of being hardcoded to NITs.
    {{ spend_counter(csv="data/costs.csv") }} #}
+{% import "macros/ui.html" as ui %}
 {% set data = load_data(path=csv) %}
 {% set tracker = load_data(path="data/tracker.csv") %}
 {% set types = ["NIT", "IIIT", "IIM", "AIIMS", "Other", ""] %}
 <div class="counter-set">
 {% for t in types %}
   {% set_global base = 0 %}
-  {% set_global totals = [] %}
-  {% set_global names = [] %}
+  {% set_global reporting = 0 %}
   {% for tr in tracker.records %}
     {% if t == "" or tr[0] == t %}
       {% set inst = tr[1] %}
@@ -19,45 +18,26 @@
         {% if row[0] == inst and row[6] != "0" %}
           {% set v = row[6] | int %}
           {% set_global base = base + v %}
-          {% set_global totals = totals | concat(with=row[6]) %}
-          {% set_global names = names | concat(with=inst) %}
+          {% set_global reporting = reporting + 1 %}
         {% endif %}
       {% endfor %}
     {% endif %}
   {% endfor %}
 
-  {% set label = "NITs" %}
-  {% if t == "IIIT" %}{% set label = "IIITs" %}
-  {% elif t == "IIM" %}{% set label = "IIMs" %}
-  {% elif t == "AIIMS" %}{% set label = "AIIMS" %}
-  {% elif t == "Other" %}{% set label = "other institutes" %}
-  {% elif t == "" %}{% set label = "all tracked institutes" %}
-  {% endif %}
   {% set idsuf = t | lower %}
   {% if t == "" %}{% set idsuf = "all" %}{% endif %}
 
   <div class="counter-block" data-type-swap data-type="{{ t }}"{% if t != "NIT" %} hidden{% endif %}>
-    <h2>Total expenditure as reported by {{ label }}
-      <span class="info-tip">
-        <button type="button" class="info-tip__btn" aria-expanded="false" aria-label="More info">?</button>
-        <span class="info-tip__panel" role="tooltip" hidden>These numbers are not exhaustive; if anything, they are only the floor. Collected from FY2020-21 to FY2024-25.</span>
-      </span>
-    </h2>
-    {% if totals | length > 0 %}
+    <h2 class="counter-block__title">Total expenditure as reported by {{ ui::type_label(t=t) }}</h2>
+    {% if reporting > 0 %}
     <div class="counter"
          id="spend-counter-{{ idsuf }}"
          data-base="{{ base }}"
-         data-totals="{{ totals | join(sep=',') }}"
-         data-names="{{ names | join(sep=',') }}"
          aria-label="Total reported software spend">
       <span class="counter__cur">₹</span><span class="odo" data-odo>{{ base }}</span>
-      <span class="counter__short" aria-hidden="true"></span>
-      <button type="button" class="counter__info" aria-expanded="false" aria-label="Spend statistics">i</button>
-      <div class="counter__stats" role="region" aria-label="Spend statistics" hidden></div>
     </div>
-    <p class="counter__note">Total reported software spend by {{ label }}.{% if t == "NIT" %} Coming up next: IIMs, IIITs and AIIMS.{% endif %}</p>
     {% else %}
-    <p class="empty-note">No expenditure data yet for {{ label }} — coming soon.</p>
+    <p class="empty-note">No expenditure data yet for {{ ui::type_label(t=t) }} — coming soon.</p>
     {% endif %}
   </div>
 {% endfor %}

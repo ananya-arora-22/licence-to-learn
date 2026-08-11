@@ -13,8 +13,9 @@
 {% set data = load_data(path=csv) %}
 {% set sw = load_data(path="data/software.csv") %}
 {% set tracker = load_data(path="data/tracker.csv") %}
+{{ ui::type_heading(before="Software expenditure reported by", after="over the last 5 years.") }}
 <div class="card-section">
-<div class="card-grid spend-cards" id="spend-cards" data-card-grid data-limit="3"
+<div class="card-grid spend-cards" id="spend-cards" data-card-grid data-limit="6"
      data-search-placeholder="Search Institute"
      data-hide-unless-search="[data-status='did-not-respond']">
   {% for tr in tracker.records %}
@@ -37,7 +38,7 @@
     {% endfor %}
 
     <article class="spend-card{% if not has_cost %} spend-card--empty{% endif %}" data-type="{{ itype }}" data-sort-value="{{ total }}" data-status="{{ status | lower | replace(from=" ", to="-") }}">
-      <div class="spend-card__head">
+      <div class="spend-card__main">
         {% if has_cost %}
           {# Rank among institutes of the same type that have reported a total. #}
           {% set_global rank = 1 %}
@@ -54,13 +55,17 @@
         {% else %}
           <span class="spend-card__eyebrow">{{ itype }}</span>
         {% endif %}
-        <span class="spend-card__status rating--{{ category }}" title="{{ status }}">
-          {% if category == "c" %}{{ ui::icon(name="circle-dashed-x") }}{% else %}{{ ui::icon(name="circle-dashed-check") }}{% endif %}
-        </span>
+        {% set slug = inst | slugify %}
+        {# Status sits inside the title line on wide screens; CSS lifts it to the
+           card's top-right corner once the row stacks. #}
+        <h3 class="spend-card__title">
+          <a class="spend-card__link" href="{{ get_url(path='/data/' ~ slug ~ '/') }}">{{ inst }}</a>
+          <span class="spend-card__status rating--{{ category }}" title="{{ status }}">
+            {% if category == "c" %}{{ ui::icon(name="circle-dashed-x") }}{% else %}{{ ui::icon(name="circle-dashed-check") }}{% endif %}
+          </span>
+        </h3>
+        <p class="spend-card__city">{{ city }}</p>
       </div>
-      {% set slug = inst | slugify %}
-      <h3><a class="spend-card__link" href="{{ get_url(path='/data/' ~ slug ~ '/') }}">{{ inst }}</a></h3>
-      <p class="spend-card__city">{{ city }}</p>
 
       {% if has_cost %}
       <div class="spend-card__body">
@@ -75,10 +80,10 @@
         </div>
       </div>
       {% else %}
-      <div class="spend-card__body spend-card__body--empty">
-        <span class="pill pill--status rating--{{ category }}">
+      <div class="spend-card__body">
+        <p class="spend-card__nodata rating--{{ category }}">
           {% if status == "Did not respond" %}Not Responded{% elif category == "c" %}Response not helpful{% else %}No cost data yet{% endif %}
-        </span>
+        </p>
         <div class="spend-card__chart-placeholder" aria-hidden="true"></div>
       </div>
       {% endif %}

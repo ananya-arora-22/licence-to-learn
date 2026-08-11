@@ -30,6 +30,13 @@
     if (n >= 1e3) return `${Math.round(n / 1e3)}k`;
     return `${n}`;
   };
+  // X-axis ticks are tight, so a "2020-21" span renders as "FY 21" — the year
+  // the financial year closes, per the Indian FY convention. Tooltips and aria
+  // labels keep the unabbreviated span. Anything not matching is left alone.
+  const fyTick = (label) => {
+    const m = /^\s*\d{4}-(\d{2})\s*$/.exec(label);
+    return m ? `FY ${m[1]}` : label;
+  };
   const el = (name, attrs, text) => {
     const n = document.createElementNS(SVGNS, name);
     for (const k in attrs) n.setAttribute(k, attrs[k]);
@@ -38,6 +45,35 @@
   };
   // n+1 evenly spaced tick values from lo to hi (for Y-axis gridlines/labels).
   const ticks = (lo, hi, n) => Array.from({ length: n + 1 }, (_, i) => lo + ((hi - lo) * i) / n);
+
+  // Rounded-rect path with independent corner radii, [top-left, top-right,
+  // bottom-right, bottom-left] — <rect rx> can only round all four at once, and
+  // the charts need a bar with a capped top and square feet. Each radius is
+  // clamped to half the shorter side so a 4-unit-tall bar can't self-intersect.
+  // A zero-radius arc is a lineto per the SVG spec, so square corners need no
+  // special case.
+  const rrect = (x, y, w, h, radii) => {
+    const lim = Math.min(w, h) / 2;
+    const [tl, tr, br, bl] = radii.map((r) => Math.max(0, Math.min(r, lim)));
+    const f = (v) => v.toFixed(1);
+    const arc = (r, ex, ey) => `A${f(r)},${f(r)} 0 0 1 ${f(ex)},${f(ey)}`;
+    return [
+      `M${f(x + tl)},${f(y)}`,
+      `H${f(x + w - tr)}`, arc(tr, x + w, y + tr),
+      `V${f(y + h - br)}`, arc(br, x + w - br, y + h),
+      `H${f(x + bl)}`, arc(bl, x, y + h - bl),
+      `V${f(y + tl)}`, arc(tl, x + tl, y),
+      "Z",
+    ].join(" ");
+  };
+
+  // Corner sets shared by both charts. The row of columns reads as one slab:
+  // only the chart's outer corners round, joins between columns stay square.
+  const outerCorners = (r, isFirst, isLast) => [
+    isFirst ? r : 0, isLast ? r : 0, isLast ? r : 0, isFirst ? r : 0,
+  ];
+  // A reported year gets a rounded cap; its feet round only at the chart's ends.
+  const barCorners = (r, isFirst, isLast) => [r, r, isLast ? r : 0, isFirst ? r : 0];
 
   const draw = (box, domainMax) => {
     const values = (box.dataset.values || "").split(",").map(num);
@@ -117,15 +153,24 @@
   // flat solid bar) plus a hover/focus tooltip wired identically for every
   // bar — no permanent callout, so it doesn't crowd small charts and keeps
   // one interaction pattern across the mini and full-size charts.
-  const barDefs = (svg, uid) => {
+  // hatch: how the no-data pattern is drawn. Light strokes read against a bare
+  // card background (the full-size chart); dark ones read against the grey
+  // column track drawn behind them (the mini sparkline) — the stroke has to
+  // contrast with whatever the pattern's transparent gaps expose.
+  const HATCH_LIGHT = { stroke: "var(--body)", opacity: "0.45", angle: 45 };
+  const HATCH_DARK = { stroke: "var(--bg)", opacity: "1", angle: 30 };
+
+  const barDefs = (svg, uid, hatchStyle = HATCH_LIGHT) => {
     const defs = el("defs", {});
     const grad = el("linearGradient", { id: uid, x1: 0, y1: 0, x2: 0, y2: 1 });
     grad.append(el("stop", { offset: "0%", "stop-color": "var(--accent)", "stop-opacity": "1" }));
     grad.append(el("stop", { offset: "100%", "stop-color": "var(--accent)", "stop-opacity": "0.2" }));
     defs.append(grad);
     const hatchId = `${uid}h`;
-    const hatch = el("pattern", { id: hatchId, patternUnits: "userSpaceOnUse", width: "5", height: "5", patternTransform: "rotate(45)" });
-    hatch.append(el("line", { x1: "0", y1: "0", x2: "0", y2: "5", stroke: "var(--body)", "stroke-width": "2", opacity: "0.5" }));
+    // A vertical line rotated by `angle` — the smaller the angle, the steeper
+    // the stripe. Gaps stay transparent so what's behind shows through.
+    const hatch = el("pattern", { id: hatchId, patternUnits: "userSpaceOnUse", width: "5.5", height: "5.5", patternTransform: `rotate(${hatchStyle.angle})` });
+    hatch.append(el("line", { x1: "0", y1: "0", x2: "0", y2: "5.5", stroke: hatchStyle.stroke, "stroke-width": "1.5", opacity: hatchStyle.opacity }));
     defs.append(hatch);
     svg.append(defs);
     return { fillId: `url(#${uid})`, hatchId: `url(#${hatchId})` };
@@ -154,28 +199,38 @@
     const labels = (box.dataset.labels || "").split(",");
     if (!values.length) return;
 
-    const W = 140, H = 72, gap = 4;
+    const W = 140, H = 72, gap = 4, RX = 5;
     const n = values.length;
     const barW = (W - gap * (n - 1)) / n;
     const max = Math.max(...values, 1);
 
     const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "linechart__mini-svg", role: "img" });
     svg.setAttribute("aria-label", box.getAttribute("aria-label") || "spending by year");
-    const { fillId, hatchId } = barDefs(svg, `lcm${n}_${Math.round(max)}`);
+    const { fillId, hatchId } = barDefs(svg, `lcm${n}_${Math.round(max)}`, HATCH_DARK);
 
     box.textContent = "";
     box.append(svg);
     const tip = wireBarTip(box, "linechart__callout");
 
     values.forEach((v, i) => {
-      // No-data years hatch the full column height, not a sliver, so "no
-      // data" reads as a deliberate state rather than a rounding error.
-      const h = v > 0 ? Math.max(4, (v / max) * (H - 4)) : H - 4;
       const bx = i * (barW + gap);
+      const outer = outerCorners(RX, i === 0, i === n - 1);
+      // Grey full-height track per year: a short bar then reads against the
+      // column it could have filled, and it backs the hatch pattern's gaps
+      // on no-data years.
+      svg.append(el("path", {
+        d: rrect(bx, 0, barW, H, outer),
+        fill: "var(--track)", class: "lcm-track",
+      }));
+
+      // No-data years hatch the full column height, not a sliver, so "no
+      // data" reads as a deliberate state rather than a rounding error. Being
+      // full-height, they take the track's corners rather than a bar cap.
+      const h = v > 0 ? Math.max(4, (v / max) * H) : H;
       const y = H - h;
-      const bar = el("rect", {
-        x: bx.toFixed(1), y: y.toFixed(1), width: barW.toFixed(1), height: h.toFixed(1),
-        rx: "2", fill: v > 0 ? fillId : hatchId, class: "lcm-bar", tabindex: "0", role: "img",
+      const bar = el("path", {
+        d: rrect(bx, y, barW, h, v > 0 ? barCorners(RX, i === 0, i === n - 1) : outer),
+        fill: v > 0 ? fillId : hatchId, class: "lcm-bar", tabindex: "0", role: "img",
       });
       const ariaLabel = `${labels[i] ? labels[i] + ": " : ""}${valLabel(v)}`;
       bar.setAttribute("aria-label", ariaLabel);
@@ -201,8 +256,14 @@
     if (!values.length) return;
 
     const rect = box.getBoundingClientRect();
-    const W = Math.max(200, Math.round(rect.width) || 320);
-    const H = Math.max(140, Math.round(rect.height) || 190);
+    // Upper clamp is a safety net, not a real layout constraint: this box's
+    // height comes from a CSS grid stretch matching its sibling stats card
+    // (see .institution__grid), and a redraw-triggered remeasure mid-resize
+    // has been observed to read a wildly wrong one-off value from the
+    // browser before that stretch has settled. 1400px is comfortably above
+    // any legitimate stats-card height; a real reading never needs it.
+    const W = Math.min(1600, Math.max(200, Math.round(rect.width) || 320));
+    const H = Math.min(1400, Math.max(140, Math.round(rect.height) || 190));
     const padL = 30, padR = 4, padT = 20, padB = 22, gap = 7;
     const max = Math.max(...values, 1);
     const n = values.length;
@@ -212,18 +273,29 @@
     // reads as a deliberate state rather than a rounding error.
     const barH = (v) => (v > 0 ? Math.max(2, (v / max) * (H - padT - padB)) : H - padT - padB);
 
+    const plotH = H - padT - padB;
+    const rx = Math.min(8, barW * 0.2);
+
     const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "barchart__svg", role: "img" });
     svg.setAttribute("aria-label", box.getAttribute("aria-label") || "spending by year");
-    const { fillId, hatchId } = barDefs(svg, `bc${n}_${Math.round(max)}`);
+    const { fillId, hatchId } = barDefs(svg, `bc${n}_${Math.round(max)}`, HATCH_DARK);
 
+    values.forEach((_, i) => {
+      svg.append(el("path", {
+        d: rrect(x(i), padT, barW, plotH, outerCorners(rx, i === 0, i === n - 1)),
+        fill: "var(--track)", class: "barchart__track",
+      }));
+    });
+
+    // No gridlines across the plot — the grey column tracks already carry the
+    // "how full is this bar" read; just the axis labels, no dashed rules.
     ticks(0, max, 4).forEach((v) => {
       const yy = padT + (1 - v / max) * (H - padT - padB);
-      svg.append(el("line", { x1: padL, y1: yy.toFixed(1), x2: W - padR, y2: yy.toFixed(1), class: "lc-grid" }));
       svg.append(el("text", { x: padL - 6, y: (yy + 3).toFixed(1), class: "lc-ylabel", "text-anchor": "end" }, axisShort(v)));
     });
 
     labels.forEach((lab, i) => {
-      svg.append(el("text", { x: (x(i) + barW / 2).toFixed(1), y: H - padB + 14, class: "lc-xlabel", "text-anchor": "middle" }, lab));
+      svg.append(el("text", { x: (x(i) + barW / 2).toFixed(1), y: H - padB + 14, class: "lc-xlabel", "text-anchor": "middle" }, fyTick(lab)));
     });
 
     box.textContent = "";
@@ -233,9 +305,12 @@
     values.forEach((v, i) => {
       const h = barH(v);
       const barY = H - padB - h;
-      const bar = el("rect", {
-        x: x(i).toFixed(1), y: barY.toFixed(1), width: barW.toFixed(1), height: h.toFixed(1),
-        rx: "4", fill: v > 0 ? fillId : hatchId, class: "barchart__bar",
+      const corners = v > 0
+        ? barCorners(rx, i === 0, i === n - 1)
+        : outerCorners(rx, i === 0, i === n - 1);
+      const bar = el("path", {
+        d: rrect(x(i), barY, barW, h, corners),
+        fill: v > 0 ? fillId : hatchId, class: "barchart__bar",
       });
       const ariaLabel = `${labels[i] ? labels[i] + ": " : ""}${valLabel(v)}`;
       bar.setAttribute("aria-label", ariaLabel);
@@ -257,7 +332,79 @@
     if (box.classList.contains("linechart--mini")) drawMini(box);
     else draw(box, null);
   });
-  document.querySelectorAll(".barchart").forEach(drawBar);
+
+  // .institution__card--chart is meant to match its sibling stats card's
+  // height (see .institution__grid) — previously done by leaving its own
+  // block-size at the CSS default and letting the grid's align-items:stretch
+  // sort it out. That relies on the browser resolving .barchart's
+  // block-size:100% (a percentage against a cross-size that grid is
+  // simultaneously trying to derive from this same item's natural size) —
+  // an ambiguous chain that has been observed to occasionally resolve to a
+  // wildly wrong height (a stray ~1400px+) and then stay stuck there,
+  // surviving further resizes, until a full reload. Setting the chart
+  // card's height explicitly, from the stats card's own ordinary
+  // (non-percentage, non-ambiguous) rendered height, sidesteps that: a
+  // definite size on a grid item isn't stretched further, so this one JS
+  // assignment fully replaces the CSS stretch for this pair. Mobile is
+  // unaffected — it clears the inline height so the existing aspect-ratio
+  // media-query rules take over once the grid stacks to one column.
+  const chartCard = document.querySelector(".institution__card--chart");
+  const statsCard = document.querySelector(".institution__stats");
+  if (chartCard && statsCard) {
+    const stackedMQ = window.matchMedia("(width <= 40rem)");
+    const syncChartHeight = () => {
+      chartCard.style.blockSize = stackedMQ.matches
+        ? ""
+        : `${Math.round(statsCard.getBoundingClientRect().height)}px`;
+    };
+    syncChartHeight();
+    new ResizeObserver(syncChartHeight).observe(statsCard);
+    stackedMQ.addEventListener("change", syncChartHeight);
+  }
+
+  // drawBar sizes its viewBox to the container's current rendered pixels
+  // (see the comment above drawBar), so a redraw is required whenever that
+  // size changes — the breakpoint where .institution__grid stacks to one
+  // column, a browser resize, or the stats card beside it changing height.
+  // Without this, the SVG's width:100%/aspect-ratio CSS box moves on but the
+  // content stays at its old viewBox aspect, letterboxing into empty space
+  // or stretching. ResizeObserver's own initial callback does the first draw
+  // (no plain forEach call), so there is exactly one draw path, not two.
+  //
+  // The redraw itself is deferred to requestAnimationFrame rather than run
+  // straight from the observer callback. drawBar mutates the observed box's
+  // own children, and this box's height is a CSS grid stretch matched to its
+  // sibling stats card (see .institution__grid) — mutating it synchronously
+  // mid-notification, before that stretch has settled, has been observed to
+  // read back a one-off garbage height (a stray ~4700px) that then gets
+  // etched into the viewBox and doesn't self-correct on a later resize
+  // because nothing changes size again to re-trigger it. Re-measuring fresh
+  // one frame later, once layout has actually settled, avoids that.
+  const barBoxes = document.querySelectorAll(".barchart");
+  if (barBoxes.length && "ResizeObserver" in window) {
+    let raf = 0;
+    const pending = new Set();
+    const flush = () => {
+      raf = 0;
+      pending.forEach((box) => {
+        const rect = box.getBoundingClientRect();
+        const w = Math.round(rect.width), h = Math.round(rect.height);
+        if (box.dataset.lastW !== String(w) || box.dataset.lastH !== String(h)) {
+          box.dataset.lastW = String(w);
+          box.dataset.lastH = String(h);
+          drawBar(box);
+        }
+      });
+      pending.clear();
+    };
+    const ro = new ResizeObserver((entries) => {
+      entries.forEach((entry) => pending.add(entry.target));
+      if (!raf) raf = requestAnimationFrame(flush);
+    });
+    barBoxes.forEach((box) => ro.observe(box));
+  } else {
+    barBoxes.forEach(drawBar);
+  }
 
   // [data-inr]: compact form by default (e.g. "₹1.9 Cr"). Short and full
   // stack as two lines inside a clipped .amt__viewport; CSS translates that

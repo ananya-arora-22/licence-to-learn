@@ -14,6 +14,7 @@
    NITs for now since that's the only type with any software data — revisit
    once a second type has real rows, so "X/N" doesn't silently mean the wrong N.
    {{ software_cards(csv="data/software.csv") }} #}
+{% import "macros/ui.html" as ui %}
 {% set sw = load_data(path=csv) %}
 {% set tracker = load_data(path="data/tracker.csv") %}
 
@@ -21,20 +22,13 @@
 {% for tr in tracker.records %}
   {% if tr[0] == "NIT" %}{% set_global total_n = total_n + 1 %}{% endif %}
 {% endfor %}
+{# The bar's segment count is cosmetic and rounds up to the nearest even
+   number (25 institutes -> 26 segments) so it splits evenly; the "X/N" caption
+   below still reports the real total_n, unrounded. #}
+{% set_global seg_total = total_n %}
+{% if total_n % 2 == 1 %}{% set_global seg_total = total_n + 1 %}{% endif %}
 
-{% set types = ["NIT", "IIIT", "IIM", "AIIMS", "Other", ""] %}
-<div class="type-heading-set">
-{% for t in types %}
-  {% set label = "NITs" %}
-  {% if t == "IIIT" %}{% set label = "IIITs" %}
-  {% elif t == "IIM" %}{% set label = "IIMs" %}
-  {% elif t == "AIIMS" %}{% set label = "AIIMS" %}
-  {% elif t == "Other" %}{% set label = "other institutes" %}
-  {% elif t == "" %}{% set label = "all tracked institutes" %}
-  {% endif %}
-  <h2 data-type-swap data-type="{{ t }}"{% if t != "NIT" %} hidden{% endif %}>Software usage reported by {{ label }}</h2>
-{% endfor %}
-</div>
+{{ ui::type_heading(before="Software usage reported by") }}
 
 <div class="card-section">
 <div class="card-grid software-cards" id="software-cards" data-card-grid data-limit="3" data-search-placeholder="Search softwares">
@@ -64,12 +58,13 @@
         </div>
       </div>
       <div class="software-card__bar" role="img" aria-label="Used by {{ count }} of {{ total_n }} tracked NITs: {{ insts | join(sep=', ') }}" title="{{ insts | join(sep=', ') }}">
-        {% for i in range(end=total_n) %}
+        {% for i in range(end=seg_total) %}
         <span class="software-card__seg{% if i < count %} is-filled{% endif %}"></span>
         {% endfor %}
       </div>
-      <p class="software-card__count" title="{{ insts | join(sep=', ') }}"><strong>{{ count }}</strong>/{{ total_n }} institutes use this tool</p>
-      <span class="pill software-card__type">{{ tool_type }}</span>
+      {# tool_type is title-cased in the CSV ("Academic Tool"); lowercase the
+         noun so it reads as prose mid-sentence. #}
+      <p class="software-card__count" title="{{ insts | join(sep=', ') }}"><strong>{{ count }}</strong>/{{ total_n }} institutes use this {{ tool_type | replace(from=" Tool", to=" tool") }}</p>
     </article>
   {% endfor %}
 </div>

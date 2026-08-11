@@ -23,15 +23,17 @@
 {% set sw = load_data(path="data/software.csv") %}
 {% set years = ["2020-21", "2021-22", "2022-23", "2023-24", "2024-25"] %}
 
-{# --- data/institutes.csv: type + city (the canonical institute registry) --- #}
+{# --- data/institutes.csv: type + city + website (the canonical institute registry) --- #}
 {% set_global itype = "" %}
 {% set_global itype_slug = "" %}
 {% set_global city = "" %}
+{% set_global website = "" %}
 {% for row in institutes.records %}
   {% if row[1] == inst %}
     {% set_global itype = row[2] %}
     {% set_global itype_slug = row[2] | lower %}
     {% set_global city = row[3] %}
+    {% set_global website = row[5] %}
   {% endif %}
 {% endfor %}
 
@@ -83,6 +85,11 @@
       {% if min_v == 0 or v < min_v %}{% set_global min_v = v %}{% set_global min_i = loop.index0 %}{% endif %}
     {% endif %}
   {% endfor %}
+{% endif %}
+
+{% if response %}
+  {% set_global response_file = response | split(pat=',') | first | trim %}
+  {% if not response_file is matching("\.[A-Za-z0-9]+$") %}{% set_global response_file = response_file ~ ".pdf" %}{% endif %}
 {% endif %}
 
 <article class="wrap page institution">
@@ -154,41 +161,65 @@
     </div>
   </div>
 
-  {% if sw_rows | length > 0 %}
-  <div class="institution__card institution__software">
-    <h2 class="institution__section-label">Software Dependencies</h2>
-    {{ t::render(csv="data/software.csv", schema="data/software.schema.json", headers=["software", "category", "tool_type"], records=sw_rows, modes=false) }}
-  </div>
-  {% endif %}
-
-  {% else %}
-  <div class="institution__card institution__empty">
-    <span class="pill pill--status rating--{{ category | default(value='c') }}">
-      {% if status == "Did not respond" %}Not Responded{% elif category == "c" %}Response not helpful{% else %}No cost data yet{% endif %}
-    </span>
-    <p>We don't have software-spend figures for {{ inst }} yet{% if response %} — its RTI response is linked below{% endif %}.</p>
-    {% if sw_rows | length > 0 %}
-    <h2 class="institution__section-label">Software Dependencies</h2>
-    {{ t::render(csv="data/software.csv", schema="data/software.schema.json", headers=["software", "category", "tool_type"], records=sw_rows, modes=false) }}
-    {% endif %}
-  </div>
-  {% endif %}
-
-  {% if response %}
-    {% set response_file = response | split(pat=',') | first | trim %}
-    {% if not response_file is matching("\.[A-Za-z0-9]+$") %}{% set response_file = response_file ~ ".pdf" %}{% endif %}
-  {% endif %}
+  {# Sits between the stats card above (Years with data, ...) and Software
+     Dependencies below — both links live here now, not in a separate row
+     at the bottom of the page. #}
+  {% if response or website %}
   <div class="institution__actions">
     {% if response %}
     <a class="institution-action" href="https://files.fossunited.org/RTIs/license-to-learn/{{ response_file }}" target="_blank" rel="noopener noreferrer">
       <span class="institution-action__label">View RTI Response {{ ui::icon(name="arrow-up-right") }}</span>
     </a>
     {% endif %}
-    <button type="button" class="institution-action" data-copy-link data-url="{{ page.permalink }}">
-      <span class="institution-action__label">Spread this info {{ ui::icon(name="arrow-up-right") }}</span>
-      <span class="institution-action__note">Copy link</span>
-    </button>
+    {% if website %}
+    <a class="institution-action" href="{{ website }}" target="_blank" rel="noopener noreferrer">
+      <span class="institution-action__label">Visit Institute's Website {{ ui::icon(name="arrow-up-right") }}</span>
+    </a>
+    {% endif %}
   </div>
+  {% endif %}
+
+  {% if sw_rows | length > 0 %}
+  <div class="institution__card institution__software">
+    <h2 class="institution__section-label">Software Dependencies {{ ui::icon(name="info-circle") }}</h2>
+    {{ t::render(csv="data/software.csv", schema="data/software.schema.json", headers=["software", "category", "tool_type"], records=sw_rows, modes=false) }}
+  </div>
+  {% endif %}
+
+  {% else %}
+  {% if response or website %}
+  <div class="institution__actions">
+    {% if response %}
+    <a class="institution-action" href="https://files.fossunited.org/RTIs/license-to-learn/{{ response_file }}" target="_blank" rel="noopener noreferrer">
+      <span class="institution-action__label">View RTI Response {{ ui::icon(name="arrow-up-right") }}</span>
+    </a>
+    {% endif %}
+    {% if website %}
+    <a class="institution-action" href="{{ website }}" target="_blank" rel="noopener noreferrer">
+      <span class="institution-action__label">Visit Institute's Website {{ ui::icon(name="arrow-up-right") }}</span>
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+  <div class="institution__card institution__empty">
+    <span class="pill pill--status rating--{{ category | default(value='c') }}">
+      {% if status == "Did not respond" %}Not Responded{% elif category == "c" %}Response not helpful{% else %}No cost data yet{% endif %}
+    </span>
+    <p>We don't have software-spend figures for {{ inst }} yet{% if response %} — its RTI response is linked above{% endif %}.</p>
+    {% if sw_rows | length > 0 %}
+    <h2 class="institution__section-label">Software Dependencies {{ ui::icon(name="info-circle") }}</h2>
+    {{ t::render(csv="data/software.csv", schema="data/software.schema.json", headers=["software", "category", "tool_type"], records=sw_rows, modes=false) }}
+    {% endif %}
+  </div>
+  {% endif %}
+  {# Spread this info (copy-link) previously lived in a bottom actions row —
+     disabled for now, not deleted. Re-enable by giving it a home; nothing
+     should sit below the software/empty card any more.
+  <button type="button" class="institution-action" data-copy-link data-url="{{ page.permalink }}">
+    <span class="institution-action__label">Spread this info {{ ui::icon(name="arrow-up-right") }}</span>
+    <span class="institution-action__note">Copy link</span>
+  </button>
+  #}
 </article>
 {% endblock %}
 

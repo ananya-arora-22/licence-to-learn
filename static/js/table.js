@@ -39,6 +39,25 @@
       td.textContent = s ? `${inr.format(n)} (${s})` : inr.format(n);
     });
 
+    // 1b. Swatch tags (table macro's swatch_from): colour keyed off the
+    // adjacent column's value (e.g. software's tag by that row's category),
+    // not by table row order — a filter/sort mustn't shuffle which colour
+    // means what. Hues step by the golden angle across this table's actual
+    // distinct values (sorted, so the assignment doesn't depend on row
+    // order) rather than hashing each string on its own — a handful of
+    // categories hashed independently readily land within a few degrees of
+    // each other and read as the same colour; stepping by the golden angle
+    // is the standard way to spread N points around a hue circle so no two
+    // are ever close, however many there are.
+    const swatchEls = [...table.querySelectorAll("[data-swatch-key]")];
+    const swatchKeys = [...new Set(swatchEls.map((el) => el.dataset.swatchKey).filter(Boolean))].sort();
+    swatchEls.forEach((el) => {
+      const i = swatchKeys.indexOf(el.dataset.swatchKey);
+      if (i < 0) return;
+      const hue = ((i * 137.508) % 360).toFixed(1);
+      el.style.setProperty("--swatch", `oklch(70% 0.11 ${hue})`);
+    });
+
     // 2. Toolbar — row 1: search + count (+ width modes); row 2: filters
     const tools = document.createElement("div");
     tools.className = "table-tools";

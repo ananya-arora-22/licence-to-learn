@@ -66,6 +66,23 @@
 </details>
 {% endmacro take_action %}
 
+{# Plural display label for an institute type ("" = all). Kept on one line so
+   it emits no stray whitespace when interpolated mid-sentence. #}
+{% macro type_label(t) %}{% if t == "IIIT" %}IIITs{% elif t == "IIM" %}IIMs{% elif t == "AIIMS" %}AIIMS{% elif t == "Other" %}other institutes{% elif t == "" %}all tracked institutes{% else %}NITs{% endif %}{% endmacro type_label %}
+
+{# Section heading that names the active institute type: one <h2> per type,
+   all but the active one hidden, swapped by the filter tabs via
+   [data-type-swap] (see static/js/cards.js). "before"/"after" wrap the label,
+   e.g. before="Software usage reported by" → "Software usage reported by NITs". #}
+{% macro type_heading(before, after="") %}
+{% set types = ["NIT", "IIIT", "IIM", "AIIMS", "Other", ""] %}
+<div class="type-heading-set">
+{% for t in types %}
+  <h2 data-type-swap data-type="{{ t }}"{% if t != "NIT" %} hidden{% endif %}>{{ before }} {{ self::type_label(t=t) }}{% if after %} {{ after }}{% endif %}</h2>
+{% endfor %}
+</div>
+{% endmacro type_heading %}
+
 {# Institute-type filter tabs. active: one of NIT/IIIT/IIM/AIIMS/Other/All.
    controls: space-separated ids of the [data-card-grid]s this bar filters —
    static/js/cards.js reads data-controls to fold tab clicks into each grid's

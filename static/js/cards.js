@@ -15,8 +15,10 @@
 
   const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 
+  // First entry is the initial view: the collapsed top-N reads as a
+  // leaderboard, so source-file order was never a useful starting point and
+  // there is no longer an unsorted "Sort by" state to return to.
   const SORTS = [
-    { key: "default", label: "Sort by" },
     { key: "value-desc", label: "Highest first" },
     { key: "value-asc", label: "Lowest first" },
     { key: "az", label: "A–Z" },
@@ -53,6 +55,7 @@
     // sync by hand since this file can't call into Tera templates.
     const searchIcon = '<svg viewBox="0 0 18 18" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.75 15.75L11.25 11.25M2.25 7.5C2.25 8.18944 2.3858 8.87213 2.64963 9.50909C2.91347 10.146 3.30018 10.7248 3.78769 11.2123C4.2752 11.6998 4.85395 12.0865 5.49091 12.3504C6.12787 12.6142 6.81056 12.75 7.5 12.75C8.18944 12.75 8.87213 12.6142 9.50909 12.3504C10.146 12.0865 10.7248 11.6998 11.2123 11.2123C11.6998 10.7248 12.0865 10.146 12.3504 9.50909C12.6142 8.87213 12.75 8.18944 12.75 7.5C12.75 6.81056 12.6142 6.12787 12.3504 5.49091C12.0865 4.85395 11.6998 4.2752 11.2123 3.78769C10.7248 3.30018 10.146 2.91347 9.50909 2.64963C8.87213 2.3858 8.18944 2.25 7.5 2.25C6.81056 2.25 6.12787 2.3858 5.49091 2.64963C4.85395 2.91347 4.2752 3.30018 3.78769 3.78769C3.30018 4.2752 2.91347 4.85395 2.64963 5.49091C2.3858 6.12787 2.25 6.81056 2.25 7.5Z"/></svg>';
     const sortIcon = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.33333 5.99981L4.66667 3.33315L2 5.99981M4.66667 3.33315V12.6665M8.66667 9.99981L11.3333 12.6665L14 9.99981M11.3333 12.6665V3.33315"/></svg>';
+    const chevronIcon = '<svg class="card-sort__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6l6 -6"/></svg>';
 
     const searchWrap = document.createElement("div");
     searchWrap.className = "card-search";
@@ -64,13 +67,50 @@
     searchWrap.append(search);
     tools.append(searchWrap);
 
-    let sortIdx = 0;
-    const sortBtn = document.createElement("button");
-    sortBtn.type = "button";
-    sortBtn.className = "card-sort";
-    const renderSortBtn = () => { sortBtn.innerHTML = `${sortIcon}<span>${SORTS[sortIdx].label}</span>`; };
-    renderSortBtn();
-    tools.append(sortBtn);
+    // Sort control: a details/summary disclosure, the same pattern the header's
+    // Take Action menu uses, so the page has one kind of dropdown.
+    let sortKey = SORTS[0].key;
+    const sortMenu = document.createElement("details");
+    sortMenu.className = "card-sort";
+    const summary = document.createElement("summary");
+    summary.className = "card-sort__summary";
+    summary.setAttribute("aria-label", "Sort by");
+    const panel = document.createElement("div");
+    panel.className = "menu__panel card-sort__panel";
+
+    const options = SORTS.map((s) => {
+      const opt = document.createElement("button");
+      opt.type = "button";
+      opt.dataset.sort = s.key;
+      opt.textContent = s.label;
+      panel.append(opt);
+      return opt;
+    });
+    const renderSort = () => {
+      const label = SORTS.find((s) => s.key === sortKey).label;
+      summary.innerHTML = `${sortIcon}<span>${label}</span>${chevronIcon}`;
+      options.forEach((o) => o.setAttribute("aria-current", String(o.dataset.sort === sortKey)));
+    };
+    renderSort();
+    sortMenu.append(summary, panel);
+    tools.append(sortMenu);
+
+    panel.addEventListener("click", (e) => {
+      const opt = e.target.closest("button[data-sort]");
+      if (!opt) return;
+      sortKey = opt.dataset.sort;
+      renderSort();
+      sortMenu.open = false;
+      summary.focus();
+      apply();
+    });
+    // <details> stays open on its own; close it the way a menu is expected to.
+    document.addEventListener("click", (e) => {
+      if (sortMenu.open && !sortMenu.contains(e.target)) sortMenu.open = false;
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && sortMenu.open) { sortMenu.open = false; summary.focus(); }
+    });
 
     grid.before(tools);
 
@@ -94,12 +134,24 @@
       // actively searching by name.
       const visible = (!q && hideSelector) ? matches.filter((el) => !el.matches(hideSelector)) : matches;
 
-      const sortKey = SORTS[sortIdx].key;
       const sorted = [...visible];
-      if (sortKey === "value-desc") sorted.sort((a, b) => num(b.dataset.sortValue) - num(a.dataset.sortValue));
-      else if (sortKey === "value-asc") sorted.sort((a, b) => num(a.dataset.sortValue) - num(b.dataset.sortValue));
-      else if (sortKey === "az") sorted.sort((a, b) => a.querySelector("h3").textContent.localeCompare(b.querySelector("h3").textContent));
-      if (sortKey !== "default") sorted.forEach((el) => grid.append(el));
+      if (sortKey === "value-desc") {
+        sorted.sort((a, b) => num(b.dataset.sortValue) - num(a.dataset.sortValue));
+      } else if (sortKey === "value-asc") {
+        sorted.sort((a, b) => {
+          const av = num(a.dataset.sortValue), bv = num(b.dataset.sortValue);
+          // A 0 sinks to the bottom of the ascending list rather than heading
+          // it: it means "no data reported yet", not "spent nothing", so
+          // ranking it as the smallest amount would read as false. Descending
+          // puts them last anyway, and A–Z is self-explanatory.
+          if (av === 0) return bv === 0 ? 0 : 1;
+          if (bv === 0) return -1;
+          return av - bv;
+        });
+      } else if (sortKey === "az") {
+        sorted.sort((a, b) => a.querySelector("h3").textContent.localeCompare(b.querySelector("h3").textContent));
+      }
+      sorted.forEach((el) => grid.append(el));
 
       const shown = new Set(collapsed ? sorted.slice(0, limit) : sorted);
       all.forEach((el) => { el.hidden = !shown.has(el); });
@@ -125,11 +177,6 @@
     };
 
     search.addEventListener("input", apply);
-    sortBtn.addEventListener("click", () => {
-      sortIdx = (sortIdx + 1) % SORTS.length;
-      renderSortBtn();
-      apply();
-    });
     more.addEventListener("click", () => {
       collapsed = !collapsed;
       apply();

@@ -58,10 +58,23 @@
         {% set slug = inst | slugify %}
         {# Status sits inside the title line on wide screens; CSS lifts it to the
            card's top-right corner once the row stacks. #}
+        {% set r = category | upper %}
+        {% set rating_label = category %}
+        {% if r == "A" %}{% set rating_label = "Helpful" %}
+        {% elif r == "B" %}{% set rating_label = "Partially helpful" %}
+        {% elif r == "C" %}{% set rating_label = "Not helpful" %}
+        {% endif %}
         <h3 class="spend-card__title">
           <a class="spend-card__link" href="{{ get_url(path='/data/' ~ slug ~ '/') }}">{{ inst }}</a>
-          <span class="spend-card__status rating--{{ category }}" title="{{ status }}">
-            {% if category == "c" %}{{ ui::icon(name="circle-dashed-x") }}{% else %}{{ ui::icon(name="circle-dashed-check") }}{% endif %}
+          {# Icon-only tickmark; hover/focus reveals what it means (the same
+             Helpful/Partially helpful/Not helpful wording ui::rating_pill
+             shows as text elsewhere) instead of relying on the plain
+             browser title tooltip. Wired by spend.js alongside .info-tip. #}
+          <span class="spend-card__status rating--{{ category }}">
+            <button type="button" class="spend-card__status-btn" aria-expanded="false" aria-label="RTI response: {{ rating_label }}">
+              {% if category == "c" %}{{ ui::icon(name="circle-dashed-x") }}{% else %}{{ ui::icon(name="circle-dashed-check") }}{% endif %}
+            </button>
+            <span class="spend-card__status-panel" role="tooltip" hidden>{{ rating_label }}</span>
           </span>
         </h3>
         <p class="spend-card__city">{{ city }}</p>

@@ -184,6 +184,17 @@
     <h2 class="institution__section-label">Software Dependencies {{ ui::icon(name="info-circle") }}</h2>
     {{ t::render(csv="data/software.csv", schema="data/software.schema.json", headers=["software", "category", "tool_type"], records=sw_rows, modes=false) }}
   </div>
+  {% else %}
+  {# An institute can report costs without its RTI response including a
+     software list (or it just hasn't been transcribed yet) — same "here's
+     what we don't have" honesty as the no-cost-data card below, rather than
+     silently omitting the section, which reads as broken, not empty. #}
+  <div class="institution__card institution__empty">
+    <span class="pill pill--status rating--{{ category | default(value='c') }}">
+      {% if status == "Did not respond" %}Not Responded{% elif category == "c" %}Response not helpful{% else %}No software data yet{% endif %}
+    </span>
+    <p>We don't have a software list for {{ inst }} yet{% if response %} — its RTI response is linked above{% endif %}.</p>
+  </div>
   {% endif %}
 
   {% else %}

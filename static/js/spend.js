@@ -77,4 +77,13 @@
     const pop = tip.querySelector(".info-tip__panel");
     if (btn && pop) wirePopover(tip, btn, pop);
   });
+
+  // --- Spend-card RTI-response tickmark: hover/focus reveals Helpful /
+  // Partially helpful / Not helpful, the same wording ui::rating_pill shows
+  // as text elsewhere, instead of relying on the plain browser title tooltip.
+  document.querySelectorAll(".spend-card__status").forEach((status) => {
+    const btn = status.querySelector(".spend-card__status-btn");
+    const pop = status.querySelector(".spend-card__status-panel");
+    if (btn && pop) wirePopover(status, btn, pop);
+  });
 })();

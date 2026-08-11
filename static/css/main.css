@@ -1375,7 +1375,12 @@ main {
   line-height: 1.3;
   color: #fff;
 }
+/* Icon-only RTI-response tickmark. Position: relative lifts it into the same
+   paint step as .spend-card__link's stretched-link ::after (both positioned,
+   z-index: auto) — since this sits later in the DOM, it paints on top and
+   stays hoverable/clickable instead of the full-card link swallowing it. */
 .spend-card__status {
+  position: relative;
   flex-shrink: 0;
   inline-size: 1.05rem;
   block-size: 1.05rem;
@@ -1385,6 +1390,40 @@ main {
     block-size: 100%;
     stroke-width: 2.2;
   }
+}
+.spend-card__status-btn {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  /* Buttons don't inherit color/font from ancestors by default — without
+     this the rating--a/b/c colour on the parent never reaches the icon's
+     stroke="currentColor". */
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.spend-card__status-panel {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-end: 0;
+  z-index: 5;
+  margin-block-start: 0.5rem;
+  inline-size: max-content;
+  max-inline-size: 10rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  color: var(--heading);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px oklch(0% 0 0 / 0.35);
+  pointer-events: none;
 }
 .spend-card__city {
   color: var(--body);
@@ -1931,24 +1970,22 @@ main {
 }
 /* Label column is a fixed width (the widest of the four fixed label strings —
    "Software dependencies" — never institute data, so one constant works for
-   every institution page) instead of flex space-between, so every value
-   starts at the same x regardless of how wide its own text is. Space-between
-   right-aligns each row to the row's own content width, which left the
-   Highest/Lowest ₹ figures at different starting points whenever the two
-   numbers differ in digit count.
+   every institution page), so every value starts at the same x regardless of
+   how wide its own text is.
 
-   flex-wrap is load-bearing, not incidental: at the width where the two-column
-   .institution__grid is squeezed but hasn't stacked yet, "label + gap + value"
-   (esp. Highest/Lowest, whose value carries a "(2020-21)" note) can exceed the
-   card's content width. Without a wrap, the note used to clip/overflow, or
-   wrap mid-parenthesis. With it, a row that doesn't fit drops its value to a
-   second line starting at the row's own left edge — the same edge every other
-   row's label starts from — so indentation stays consistent whether or not a
-   given row happens to wrap. Each row wraps independently, only if it needs
-   to, at any viewport width, not just a fixed breakpoint. */
+   The note ("(2020-21)") is pinned to the row's own right edge via
+   margin-inline-start: auto on .institution__stat-note, rather than just
+   trailing after the amount — Highest/Lowest's amount is an .amt (see
+   amt-row elsewhere in this file): both its short form ("₹8.07 Cr") and full
+   form ("₹8,07,00,000") sit in the DOM at once, so the box is already sized
+   to the wider *full* form even before you hover it. Letting the note trail
+   directly after that amount meant it visually shifted right by that same
+   reserved width on every Highest/Lowest row, while Years-with-data/Software-
+   dependencies (plain numbers, no hidden full form) didn't — so the notes
+   never lined up between rows. Pinning it to the row's end edge instead means
+   its position doesn't depend on the amount's width at all. */
 .institution__stat-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
 }
@@ -1973,16 +2010,20 @@ main {
   }
 }
 .institution__stat-value {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: baseline;
   gap: 0.4rem;
   color: var(--heading);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .institution__stat-note {
+  margin-inline-start: auto;
   color: var(--body);
   font-weight: 400;
+  white-space: nowrap;
 }
 .institution__dots {
   display: inline-flex;

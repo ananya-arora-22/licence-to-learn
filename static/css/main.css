@@ -1312,7 +1312,14 @@ main {
    sparkline pinned to the right — instead of a multi-column grid of tall
    cards. Stacks into a block below 40rem (see the @media at the end). */
 .spend-cards {
-  grid-template-columns: 1fr;
+  /* minmax(0, 1fr), not a bare 1fr: a bare 1fr track's automatic minimum is
+     content-based, so a card whose fixed-width money panel + placeholder
+     can't shrink (both are flex-shrink: 0) forces the track wider than the
+     grid and the placeholder spills past the card's edge. Firefox computes
+     a larger min-content for the name/badge flex nesting above than Chrome
+     does for the same markup, so it was the one to visibly break — longer
+     institute names (NIT Agartala) crossed the threshold first. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
 }
 .spend-card {
@@ -1324,6 +1331,16 @@ main {
   border: 1px solid var(--border);
   border-radius: var(--radius, 12px);
   background: var(--surface);
+  /* Belt-and-braces: .spend-card__main's min-inline-size: 0 is meant to let
+     it shrink away before the fixed-width money panel/chart ever has to.
+     Firefox computes a bigger automatic minimum size than Chrome for this
+     nested flex + ellipsis shape though, so on some rows (longer institute
+     names, e.g. NIT Agartala) it refuses to shrink enough and the chart
+     placeholder spills past the card edge. Clipping here can't un-break that
+     math, but it guarantees the overflow is invisible instead of leaking into
+     the page — the status tooltip below is confirmed to sit well within
+     these bounds, so nothing else gets cut off. */
+  overflow: hidden;
 
   &[hidden] {
     display: none;
@@ -1431,7 +1448,13 @@ main {
 }
 .spend-card__body {
   position: relative;
-  flex: 0 0 auto;
+  /* Definite basis (11rem amount/nodata + 0.6rem gap + 7.5rem chart/placeholder),
+     not auto: auto makes Firefox compute this nested flex container's own
+     content size, and it lands on something far smaller than its children's
+     fixed widths actually need — the children then spill past their own
+     parent. A hard-coded basis matching the children sidesteps that
+     nested-intrinsic-sizing computation entirely instead of relying on it. */
+  flex: 0 0 19.1rem;
   display: flex;
   align-items: stretch;
   gap: 0.6rem;
@@ -2238,6 +2261,7 @@ main {
   border-radius: 6px;
   background: var(--band);
   font-family: var(--font-sans);
+  text-decoration: none;
   cursor: pointer;
 
   & .institution-action__label {

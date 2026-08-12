@@ -2053,9 +2053,12 @@ main {
   color: var(--heading);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+
+  & .amt {
+    text-align: right;
+  }
 }
 .institution__stat-note {
-  margin-inline-start: auto;
   color: var(--body);
   font-weight: 400;
   white-space: nowrap;
